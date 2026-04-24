@@ -280,16 +280,16 @@ body.light-mode .admin-bar {
       <div class="nav-sec">
         <div class="nav-lbl hide-col">الرئيسية</div>
         <div class="nav-item active" onclick="showPage('clients',this)"><span class="nav-icon"><i class="ph-duotone ph-users"></i></span><span class="hide-col">العملاء</span></div>
-        <div class="nav-item" onclick="showPage('contracts',this)"><span class="nav-icon"><i class="ph-duotone ph-file-text"></i></span><span class="hide-col">العقود</span></div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-lbl hide-col">عمليات</div>
+        <div class="nav-item" onclick="showPage('contracts',this)"><span class="nav-icon"><i class="ph-duotone ph-file-text"></i></span><span class="hide-col">عقود الصيانة</span></div>
+        <div class="nav-item orange-nav" id="nav-inst" onclick="showPage('installations',this)"><span class="nav-icon"><i class="ph-duotone ph-crane"></i></span><span class="hide-col">عقود التركيب</span></div>
       </div>
       <div class="nav-sec">
         <div class="nav-lbl hide-col">المتابعة</div>
         <div class="nav-item" onclick="showPage('visits',this)"><span class="nav-icon"><i class="ph-duotone ph-calendar-blank"></i></span><span class="hide-col">الزيارات</span></div>
         <div class="nav-item red-nav" id="nav-urgent" onclick="showPage('urgent',this)"><span class="nav-icon"><i class="ph-duotone ph-warning-circle"></i></span><span class="hide-col">تحتاج تواصل</span></div>
-      </div>
-      <div class="nav-sec">
-        <div class="nav-lbl hide-col">عمليات</div>
-        <div class="nav-item orange-nav" id="nav-inst" onclick="showPage('installations',this)"><span class="nav-icon"><i class="ph-duotone ph-crane"></i></span><span class="hide-col">عقود التركيب</span></div>
       </div>
       <div class="nav-sec">
         <div class="nav-lbl hide-col">التحليل</div>
@@ -798,7 +798,7 @@ function calcNextDate(visitDay,visitType){
   const day=parseInt(visitDay);
   const intervalMonths=visitType==='كل شهرين'?2:1;
   let candidate=new Date(today.getFullYear(),today.getMonth(),day);
-  if(candidate<=today) candidate=new Date(today.getFullYear(),today.getMonth()+intervalMonths,day);
+  if(candidate<today) candidate=new Date(today.getFullYear(),today.getMonth()+intervalMonths,day);
   let safety=0;
   while(candidate.getDate()!==day&&safety++<12)
     candidate=new Date(candidate.getFullYear(),candidate.getMonth()+1,day);
@@ -1024,6 +1024,56 @@ function renderContracts(){
     </tr>`).join('');
 }
 
+
+async function toggleVisit(id, e){
+  e.stopPropagation();
+  if(!isAdmin){showToast('للإدارة فقط','error');return;}
+  const c=raw.find(x=>x.id===id);
+  if(!c) return;
+  const currentMonth = c.next_date ? c.next_date.substring(0,7) : new Date().toISOString().substring(0,7);
+  const newDate = c.visit_done_date===currentMonth ? null : currentMonth;
+  const oldDate = c.visit_done_date;
+  
+  c.visit_done_date = newDate;
+  renderVisits(currentVisitFilter);
+  
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({visit_done_date:newDate})
+    });
+    if(!res.ok) throw new Error('DB Error');
+    showToast(newDate ? 'تم تسجيل الزيارة بنجاح' : 'تم التراجع عن الزيارة', 'success');
+  } catch(err){
+    c.visit_done_date = oldDate;
+    renderVisits(currentVisitFilter);
+    showToast('يجب تشغيل ملف SQL (v6.sql) في قاعدة البيانات أولاً', 'error');
+  }
+}
+
+async function saveVisitNote(id, note){
+  if(!isAdmin) return;
+  const c=raw.find(x=>x.id===id);
+  if(!c) return;
+  const oldNote = c.visit_note;
+  c.visit_note = note;
+  
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({visit_note:note})
+    });
+    if(!res.ok) throw new Error('DB Error');
+    showToast('تم حفظ ملاحظة الزيارة', 'success');
+  } catch(err){
+    c.visit_note = oldNote;
+    showToast('يجب تشغيل ملف SQL (v6.sql) أولاً', 'error');
+  }
+}
+
+// ---
 // ─── Visits ───
 function setVisitView(mode){
   visitViewMode=mode;
@@ -1059,6 +1109,8 @@ function renderVisits(f){
       <td style="color:var(--text2)">${c.next_date?formatDateAr(c.next_date):'—'}</td>
       <td>${rb(c.remaining)}</td>
       <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
+      <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:none;cursor:pointer;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--text3)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'تمت اليوم ✔':'تحديد كمنتهية'}</button>` : hiddenTxt}</td>
+      <td style="width:140px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px">` : hiddenTxt}</td>
       <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
     </tr>`).join('');
 
@@ -1084,6 +1136,8 @@ function renderVisits(f){
         <td style="color:var(--text2)">${c.area||'—'}</td>
         <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
         <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
+        <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:none;cursor:pointer;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--text3)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'تمت اليوم ✔':'تحديد كمنتهية'}</button>` : hiddenTxt}</td>
+        <td style="width:140px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px">` : hiddenTxt}</td>
         <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
       </tr>`).join('');
     return `<div class="visit-day-group">
