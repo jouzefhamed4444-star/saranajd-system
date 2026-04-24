@@ -159,7 +159,9 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
 .vdg-overdue .vdg-day-num{color:var(--red)}
 .vdg-soon{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}
 .vdg-soon .vdg-day-num{color:var(--amber)}
-.vdg-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden}
+.vdg-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);overflow-x:auto}
+.visit-note-inp{width:100%;padding:6px 8px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;font-family:inherit;font-weight:500;outline:none;transition:all .2s}
+.visit-note-inp:focus{border-color:var(--accent);background:var(--bg2);box-shadow:0 0 0 2px var(--blue-bg)}
 .next-date-preview{font-size:11px;color:var(--accent);margin-top:4px;min-height:16px;font-weight:500}
 @media(max-width:768px){
   .sidebar{position:fixed;right:0;top:0;height:100%;z-index:300;transform:translateX(100%);transition:transform .25s}
@@ -1112,7 +1114,7 @@ function renderVisits(f){
       <td>${rb(c.remaining)}</td>
       <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
       <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
-      <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
+      <td style="width:220px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" class="visit-note-inp">` : hiddenTxt}</td>
       <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
     </tr>`).join('');
 
@@ -1139,17 +1141,17 @@ function renderVisits(f){
         <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
         <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
         <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
-        <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
+        <td style="width:220px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" class="visit-note-inp">` : hiddenTxt}</td>
         <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
       </tr>`).join('');
-    return `<div class="visit-day-group">
-      <div class="vdg-header ${cls}">
-        <div class="vdg-day-num">${group.day}</div>
+    return `<div class="visit-day-group" style="margin-bottom:24px">
+      <div class="vdg-header ${cls}" style="padding:14px 18px;border-radius:var(--r);box-shadow:0 2px 8px rgba(0,0,0,0.05)">
+        <div class="vdg-day-num" style="font-size:32px;color:var(--accent)">${group.day}</div>
         <div class="vdg-day-info">
-          <div class="vdg-day-name">${fullDate}</div>
-          <div class="vdg-day-date">${r<=0?'<i class="ph-bold ph-warning" style="margin-left:2px"></i> متأخرة':'بعد '+r+' يوم'}</div>
+          <div class="vdg-day-name" style="font-size:15px">${fullDate}</div>
+          <div class="vdg-day-date" style="font-size:12px;font-weight:500">${r<=0?'<i class="ph-bold ph-warning" style="margin-left:4px"></i> متأخرة':'بعد '+r+' يوم'}</div>
         </div>
-        <div class="vdg-count">${group.clients.length} عميل</div>
+        <div class="vdg-count" style="padding:5px 12px;font-size:12px;font-weight:600;background:var(--blue-bg);color:var(--accent)">${group.clients.length} عميل</div>
       </div>
       <div class="vdg-table"><table class="tbl">
         <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>نوع الزيارة</th><th>الزيارة</th><th>ملاحظة الزيارة</th><th>ملاحظة العميل</th></tr></thead>
