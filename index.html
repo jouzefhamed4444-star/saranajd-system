@@ -429,7 +429,7 @@ body.light-mode .admin-bar {
         <div class="card" id="visits-table-view" style="display:none">
           <div class="card-hdr"><div class="card-title">جدول الزيارات</div></div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th><th>نوع الزيارة</th><th>ملاحظة</th></tr></thead>
+            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th><th>نوع الزيارة</th><th>الزيارة</th><th>ملاحظة الزيارة</th><th>ملاحظة العميل</th></tr></thead>
             <tbody id="visits-tbody"></tbody>
           </table></div>
         </div>
@@ -959,10 +959,10 @@ function openPanel(id){
       <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?'كل '+c.visit+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
       <div class="ir"><span class="il">الزيارة القادمة</span><span class="iv" style="color:var(--accent)">${nextDate?formatDateAr(nextDate):'—'}</span></div>
       <div class="ir"><span class="il">المتبقي</span><span class="iv">${c.visit_day?rb(remaining):'—'}</span></div>
-      <div class="ir"><span class="il">تمت الزيارة؟</span><span class="iv" style="color:${c.visit_done_date==(nextDate||"").substring(0,7)?'var(--green)':'var(--red)'};font-weight:600">${c.visit_done_date==(nextDate||"").substring(0,7)?'نعم ✔':'لا'}</span></div>
-      <div class="ir"><span class="il">ملاحظة الزيارة</span><span class="iv" style="max-width:200px;text-align:left">${c.visit_note||'—'}</span></div>
-      ${c.note?`<div style="margin-top:7px"><div class="sec-lbl">ملاحظة</div><div class="note-box">${c.note}</div></div>`:''}
+      <div class="ir"><span class="il">الزيارة</span><span class="iv" style="color:${c.visit_done_date==(nextDate||"").substring(0,7)?'var(--green)':'var(--red)'};font-weight:600">${c.visit_done_date==(nextDate||"").substring(0,7)?'تم ✔':'لم تتم'}</span></div>
+      <div class="ir"><span class="il">ملاحظة الزيارة</span><span class="iv" style="max-width:200px;text-align:left;color:var(--text2)">${c.visit_note||'—'}</span></div>
     </div>
+    ${c.note?`<div class="panel-sec"><div class="sec-lbl">ملاحظة العميل</div><div class="note-box">${c.note}</div></div>`:''}
     <div class="panel-sec">
       ${(isAdmin && c.phone)?`<button class="wa-btn" onclick="window.open('https://wa.me/966${c.phone}','_blank')"><i class="ph-fill ph-whatsapp-logo" style="font-size:16px"></i> واتساب ${c.name.split(' ')[0]}</button>`:''}
       ${isAdmin?`<button class="act-btn" onclick="closePanel();showEditModal(${c.id})"><i class="ph-duotone ph-pencil-simple" style="font-size:16px"></i> تعديل بيانات العميل</button>
@@ -1111,9 +1111,9 @@ function renderVisits(f){
       <td style="color:var(--text2)">${c.next_date?formatDateAr(c.next_date):'—'}</td>
       <td>${rb(c.remaining)}</td>
       <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
-      <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:none;cursor:pointer;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'نعم ✔':'لا'}</button>` : hiddenTxt}</td>
-      <td style="width:140px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px">` : hiddenTxt}</td>
-      <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
+      <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
+      <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
+      <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
     </tr>`).join('');
 
   // Groups
@@ -1138,8 +1138,8 @@ function renderVisits(f){
         <td style="color:var(--text2)">${c.area||'—'}</td>
         <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
         <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
-        <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:none;cursor:pointer;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'نعم ✔':'لا'}</button>` : hiddenTxt}</td>
-        <td style="width:140px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px">` : hiddenTxt}</td>
+        <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
+        <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
         <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
       </tr>`).join('');
     return `<div class="visit-day-group">
@@ -1152,7 +1152,7 @@ function renderVisits(f){
         <div class="vdg-count">${group.clients.length} عميل</div>
       </div>
       <div class="vdg-table"><table class="tbl">
-        <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>نوع الزيارة</th><th>ملاحظة</th></tr></thead>
+        <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>نوع الزيارة</th><th>الزيارة</th><th>ملاحظة الزيارة</th><th>ملاحظة العميل</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
     </div>`;
