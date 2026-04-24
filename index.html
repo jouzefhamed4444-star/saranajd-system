@@ -149,7 +149,7 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
 .toast.error{border-color:rgba(239,68,68,.3);color:var(--red)}
 /* Visit Groups */
 .visit-day-group{margin-bottom:20px}
-.vdg-header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--rs);margin-bottom:8px;border:1px solid var(--border)}
+.vdg-header{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg3);border-radius:var(--rs);margin-bottom:10px;border:1px solid var(--border)}
 .vdg-day-num{font-size:28px;font-weight:600;line-height:1;min-width:36px;text-align:center}
 .vdg-day-info{flex:1}
 .vdg-day-name{font-size:13px;font-weight:600}
@@ -159,7 +159,31 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
 .vdg-overdue .vdg-day-num{color:var(--red)}
 .vdg-soon{border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.04)}
 .vdg-soon .vdg-day-num{color:var(--amber)}
-.vdg-table{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);overflow:hidden}
+/* Cards scroll */
+.vg-scroll-wrap{overflow-x:auto;padding-bottom:6px}
+.vg-scroll-wrap::-webkit-scrollbar{height:4px}
+.vg-scroll-wrap::-webkit-scrollbar-track{background:var(--bg3);border-radius:4px}
+.vg-scroll-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+.vg-cards-row{display:flex;gap:12px;cursor:grab;padding:2px 2px 4px;width:max-content;min-width:100%}
+.vg-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:13px 14px;width:280px;min-width:280px;display:flex;flex-direction:column;gap:9px;transition:border-color .15s,box-shadow .15s;position:relative}
+.vg-card:hover{border-color:var(--border2);box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.vg-card-done{border-color:rgba(16,185,129,.3);background:rgba(16,185,129,.04)}
+.vg-card-urgent{border-right:3px solid var(--red)}
+.vg-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.vg-card-name{flex:1;cursor:pointer;font-size:13px}
+.vg-card-name:hover span{color:var(--accent)}
+.vg-visit-btn{border:none;border-radius:5px;padding:5px 11px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.vg-done{background:var(--green-bg);color:var(--green);border:1px solid rgba(16,185,129,.25)}
+.vg-notdone{background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.vg-card-mid{display:flex;flex-wrap:wrap;gap:6px}
+.vg-info-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);background:var(--bg3);padding:3px 7px;border-radius:20px}
+.vg-card-note-row{border-top:1px solid var(--border);padding-top:8px;display:flex;flex-direction:column;gap:4px}
+.vg-note-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center;gap:4px}
+.vg-note-val{font-size:12px;color:var(--text);min-height:20px}
+.vg-note-text{cursor:text;display:block;padding:3px 0}
+.vg-note-text:hover{color:var(--accent)}
+.vg-client-note{font-size:11px;color:var(--text2);background:rgba(245,158,11,.07);border-right:2px solid var(--amber);border-radius:4px;padding:5px 8px;display:flex;align-items:flex-start;gap:5px}
+.vg-history{display:flex;flex-wrap:wrap;gap:3px;border-top:1px solid var(--border);padding-top:7px}
 .next-date-preview{font-size:11px;color:var(--accent);margin-top:4px;min-height:16px;font-weight:500}
 @media(max-width:768px){
   .sidebar{position:fixed;right:0;top:0;height:100%;z-index:300;transform:translateX(100%);transition:transform .25s}
@@ -429,7 +453,7 @@ body.light-mode .admin-bar {
         <div class="card" id="visits-table-view" style="display:none">
           <div class="card-hdr"><div class="card-title">جدول الزيارات</div></div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th><th>نوع الزيارة</th><th>الزيارة</th><th>ملاحظة الزيارة</th><th>ملاحظة العميل</th></tr></thead>
+            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th><th>نوع الزيارة</th><th>ملاحظة</th></tr></thead>
             <tbody id="visits-tbody"></tbody>
           </table></div>
         </div>
@@ -779,7 +803,7 @@ function doLogout(){
 
 async function sbFetch(path,opts={}){
   const r=await fetch(`${SB_URL}/rest/v1/${path}`,{
-    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal',...(opts.headers||{})},
     ...opts
   });
   if(!r.ok) throw new Error(await r.text());
@@ -932,12 +956,22 @@ function openPanel(id){
   const c=raw.find(x=>x.id===id);
   const {nextDate,remaining}=c.visit_day?calcNextDate(c.visit_day,c.visit):{nextDate:c.next_date||'',remaining:c.remaining||0};
   let dots='';
-  if(c.start_date){
-    const s=new Date(c.start_date),now=new Date(),months=c.duration?parseInt(c.duration)*12:12;
-    const total=Math.min(12,months),done=Math.max(0,Math.min(Math.round((now-s)/(30*24*3600*1000)),total));
-    dots=Array.from({length:total},(_,i)=>`<div class="md ${i<done?'md-done':i===done?'md-cur':'md-pend'}">${i+1}</div>`).join('');
+  if(isAdmin && c.visit_day){
+    const history=c.visit_history||[];
+    // generate last 12 months labels
+    const now=new Date();
+    const months=Array.from({length:12},(_,i)=>{
+      const d=new Date(now.getFullYear(),now.getMonth()-11+i,1);
+      return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:AR_MONTHS[d.getMonth()].slice(0,3)};
+    });
+    dots=months.map(m=>{
+      const done=history.includes(m.key);
+      const isCur=m.key===new Date().toISOString().substring(0,7);
+      return `<div class="md ${done?'md-done':isCur?'md-cur':'md-pend'}" title="${m.key}">${m.label}</div>`;
+    }).join('');
   }
   document.getElementById('panel-name').textContent=c.name;
+  document.getElementById('panel-name').dataset.id=c.id;
   document.getElementById('panel-body').innerHTML=`
     ${c.needs_contact?`<div style="background:var(--red-bg);padding:9px 16px;border-bottom:1px solid rgba(239,68,68,.2);display:flex;align-items:center;gap:8px"><i class="ph-duotone ph-warning-circle" style="font-size:16px;color:var(--red)"></i><span style="font-size:12px;color:var(--red);font-weight:500">يحتاج تواصل — م/ إسلام</span></div>`:''}
     <div class="panel-sec"><div class="sec-lbl">بيانات العميل</div>
@@ -954,13 +988,21 @@ function openPanel(id){
       <div class="ir"><span class="il">نهاية العقد</span><span class="iv">${c.end_date||'—'}</span></div>
       ` : `<div style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px;background:var(--bg3);border-radius:4px;margin-top:4px"><i class="ph ph-lock" style="font-size:16px;margin-bottom:4px;display:block"></i>هذه البيانات متاحة للإدارة فقط</div>`}
     </div>
-    ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات</div><div class="month-grid">${dots}</div></div>`:''}
+    ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات</div><div class="month-grid">${dots}</div>
+      ${(c.visit_history&&c.visit_history.length)?`<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${c.visit_history.slice(-12).map(m=>`<span style="background:var(--green-bg);color:var(--green);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500">${m}</span>`).join('')}</div>`:''}
+    </div>`:''}
     <div class="panel-sec"><div class="sec-lbl">الزيارة القادمة</div>
       <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?'كل '+c.visit+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
       <div class="ir"><span class="il">الزيارة القادمة</span><span class="iv" style="color:var(--accent)">${nextDate?formatDateAr(nextDate):'—'}</span></div>
       <div class="ir"><span class="il">المتبقي</span><span class="iv">${c.visit_day?rb(remaining):'—'}</span></div>
-      <div class="ir"><span class="il">الزيارة</span><span class="iv" style="color:${c.visit_done_date==(nextDate||"").substring(0,7)?'var(--green)':'var(--red)'};font-weight:600">${c.visit_done_date==(nextDate||"").substring(0,7)?'تم ✔':'لم تتم'}</span></div>
-      <div class="ir"><span class="il">ملاحظة الزيارة</span><span class="iv" style="max-width:200px;text-align:left;color:var(--text2)">${c.visit_note||'—'}</span></div>
+      <div class="ir"><span class="il">الزيارة</span><span class="iv">
+        ${isAdmin?`<button onclick="toggleVisit(${c.id},{stopPropagation:()=>{}})" style="padding:5px 14px;border-radius:5px;font-size:12px;font-weight:600;border:none;cursor:pointer;color:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green)':'var(--red)'};background:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green-bg)':'var(--red-bg)'};border:1px solid ${c.visit_done_date==(nextDate||'').substring(0,7)?'rgba(16,185,129,.25)':'rgba(239,68,68,.25)'}">${c.visit_done_date==(nextDate||'').substring(0,7)?'✔ تم':'✗ لم تتم'}</button>`:`<span style="color:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green)':'var(--red)'};font-weight:600">${c.visit_done_date==(nextDate||'').substring(0,7)?'تم ✔':'لم تتم'}</span>`}
+      </span></div>
+      <div class="ir" style="align-items:flex-start"><span class="il" style="padding-top:6px">ملاحظة الزيارة</span>
+        <span class="iv" style="flex:1">
+          ${isAdmin?`<textarea id="panel-visit-note" rows="2" onchange="saveVisitNote(${c.id},this.value)" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${c.visit_note||''}</textarea>`:`<span style="color:var(--text2)">${c.visit_note||'—'}</span>`}
+        </span>
+      </div>
     </div>
     ${c.note?`<div class="panel-sec"><div class="sec-lbl">ملاحظة العميل</div><div class="note-box">${c.note}</div></div>`:''}
     <div class="panel-sec">
@@ -1033,24 +1075,41 @@ async function toggleVisit(id, e){
   const c=raw.find(x=>x.id===id);
   if(!c) return;
   const currentMonth = c.next_date ? c.next_date.substring(0,7) : new Date().toISOString().substring(0,7);
-  const newDate = c.visit_done_date===currentMonth ? null : currentMonth;
+  const isDone = c.visit_done_date===currentMonth;
+  const newDate = isDone ? null : currentMonth;
   const oldDate = c.visit_done_date;
-  
+  const oldHistory = c.visit_history ? [...c.visit_history] : [];
+
+  // update visit_history: add month if done, keep it even after day passes
+  let history = c.visit_history ? [...c.visit_history] : [];
+  if(!isDone){
+    if(!history.includes(currentMonth)) history.push(currentMonth);
+  } else {
+    history = history.filter(m=>m!==currentMonth);
+  }
+
   c.visit_done_date = newDate;
+  c.visit_history = history;
   renderVisits(currentVisitFilter);
-  
+  // refresh panel if open
+  if(document.getElementById('panel').classList.contains('open')){
+    const pid = parseInt(document.getElementById('panel-name').dataset.id||0);
+    if(pid===id) openPanel(id);
+  }
+
   try {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({visit_done_date:newDate})
+      body:JSON.stringify({visit_done_date:newDate, visit_history:history})
     });
     if(!res.ok) throw new Error('DB Error');
-    showToast(newDate ? 'تمت الزيارات اليوم بنجاح' : 'تم إلغاء الزيارة', 'success');
+    showToast(newDate ? '✔ تمت الزيارة — تم التسجيل في التقدم' : 'تم إلغاء الزيارة', 'success');
   } catch(err){
     c.visit_done_date = oldDate;
+    c.visit_history = oldHistory;
     renderVisits(currentVisitFilter);
-    showToast('يجب تشغيل ملف SQL (v6.sql) في قاعدة البيانات أولاً', 'error');
+    showToast('تعذّر الحفظ في قاعدة البيانات', 'error');
   }
 }
 
@@ -1060,7 +1119,6 @@ async function saveVisitNote(id, note){
   if(!c) return;
   const oldNote = c.visit_note;
   c.visit_note = note;
-  
   try {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
@@ -1068,10 +1126,10 @@ async function saveVisitNote(id, note){
       body:JSON.stringify({visit_note:note})
     });
     if(!res.ok) throw new Error('DB Error');
-    showToast('تم حفظ ملاحظة الزيارة', 'success');
+    showToast('✔ تم حفظ ملاحظة الزيارة', 'success');
   } catch(err){
     c.visit_note = oldNote;
-    showToast('يجب تشغيل ملف SQL (v6.sql) أولاً', 'error');
+    showToast('تعذّر الحفظ', 'error');
   }
 }
 
@@ -1111,9 +1169,9 @@ function renderVisits(f){
       <td style="color:var(--text2)">${c.next_date?formatDateAr(c.next_date):'—'}</td>
       <td>${rb(c.remaining)}</td>
       <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
-      <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
-      <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
-      <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
+      <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:4px 8px;border-radius:4px;font-size:11px;border:none;cursor:pointer;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'تم ✔':'لم تتم'}</button>` : hiddenTxt}</td>
+      <td style="width:140px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:4px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px">` : hiddenTxt}</td>
+      <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
     </tr>`).join('');
 
   // Groups
@@ -1131,17 +1189,35 @@ function renderVisits(f){
     const cls=r<=0?'vdg-overdue':r<=7?'vdg-soon':'';
     const d=group.nextDate?new Date(group.nextDate+'T00:00:00'):null;
     const fullDate=d?`${AR_DAYS[d.getDay()]} ${d.getDate()} ${AR_MONTHS[d.getMonth()]} ${d.getFullYear()}`:'—';
-    const rows=group.clients.map(c=>`
-      <tr class="${c.needs_contact?'row-red':''}" onclick="openPanel(${c.id})" style="cursor:pointer">
-        <td style="color:var(--text3);font-size:11px">${c.id}</td>
-        <td style="font-weight:500">${c.name}</td>
-        <td style="color:var(--text2)">${c.area||'—'}</td>
-        <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
-        <td style="color:var(--text2)">${isAdmin ? c.visit||'—' : hiddenTxt}</td>
-        <td style="width:110px">${isAdmin ? `<button onclick="toggleVisit(${c.id}, event)" style="padding:5px 12px;border-radius:4px;font-size:11px;border:none;cursor:pointer;font-weight:600;color:#fff;background:${c.visit_done_date==(c.next_date||"").substring(0,7)?'var(--green)':'var(--red)'}">${c.visit_done_date==(c.next_date||"").substring(0,7)?'✔ تم':'✗ لم تتم'}</button>` : hiddenTxt}</td>
-        <td style="width:160px">${isAdmin ? `<input type="text" value="${c.visit_note||""}" placeholder="ملاحظة الزيارة..." onchange="saveVisitNote(${c.id}, this.value)" onclick="event.stopPropagation()" style="width:100%;padding:5px 7px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:11px;font-family:inherit">` : hiddenTxt}</td>
-        <td style="color:var(--text2);max-width:160px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
-      </tr>`).join('');
+    const doneCount=group.clients.filter(c=>c.visit_done_date==(c.next_date||'').substring(0,7)).length;
+    const cards=group.clients.map(c=>{
+      const isDone=c.visit_done_date==(c.next_date||'').substring(0,7);
+      const history=c.visit_history||[];
+      const historyDots=history.length?history.slice(-6).map(m=>{
+        const[y,mo]=m.split('-');
+        return `<span title="${y}-${mo}" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:9px;font-weight:600">${mo}</span>`;
+      }).join(''):'<span style="font-size:10px;color:var(--text3)">لا يوجد تاريخ</span>';
+      return `<div class="vg-card ${isDone?'vg-card-done':''} ${c.needs_contact?'vg-card-urgent':''}" data-id="${c.id}">
+        <div class="vg-card-top">
+          <div class="vg-card-name" onclick="openPanel(${c.id})">${c.needs_contact?'<i class="ph-duotone ph-warning-circle" style="color:var(--red);font-size:14px"></i> ':''}<span style="font-weight:600;font-size:13px">${c.name}</span></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            ${isAdmin?`<button onclick="toggleVisit(${c.id},event)" class="vg-visit-btn ${isDone?'vg-done':'vg-notdone'}">${isDone?'✔ تم':'✗ لم تتم'}</button>`:''}
+          </div>
+        </div>
+        <div class="vg-card-mid">
+          <div class="vg-info-item"><i class="ph-duotone ph-map-pin" style="color:var(--text3)"></i><span>${c.area||'—'}</span></div>
+          <div class="vg-info-item"><i class="ph-duotone ph-elevator" style="color:var(--text3)"></i><span>${c.elevators} مصعد</span></div>
+          <div class="vg-info-item"><i class="ph-duotone ph-arrows-clockwise" style="color:var(--text3)"></i><span>${c.visit||'—'}</span></div>
+          ${isAdmin&&c.phone?`<div class="vg-info-item"><i class="ph-duotone ph-phone" style="color:var(--accent)"></i><a href="tel:+966${c.phone}" onclick="event.stopPropagation()" style="color:var(--accent);text-decoration:none">${c.phone}</a></div>`:''}
+        </div>
+        <div class="vg-card-note-row">
+          <div class="vg-note-label"><i class="ph-duotone ph-note-pencil" style="font-size:13px;color:var(--text3)"></i> ملاحظة الزيارة</div>
+          <div class="vg-note-val" onclick="event.stopPropagation()">${isAdmin?`<span class="vg-note-text" onclick="startEditNote(${c.id},this)">${c.visit_note||'<span style=\'color:var(--text3);font-style:italic;font-size:11px\'>اضغط للكتابة...</span>'}</span>`:`<span style="color:var(--text3);font-size:11px">${c.visit_note||'—'}</span>`}</div>
+        </div>
+        ${c.note?`<div class="vg-client-note"><i class="ph-duotone ph-info" style="font-size:12px;color:var(--amber)"></i> ${c.note}</div>`:''}
+        <div class="vg-history">${historyDots}</div>
+      </div>`;
+    }).join('');
     return `<div class="visit-day-group">
       <div class="vdg-header ${cls}">
         <div class="vdg-day-num">${group.day}</div>
@@ -1149,14 +1225,46 @@ function renderVisits(f){
           <div class="vdg-day-name">${fullDate}</div>
           <div class="vdg-day-date">${r<=0?'<i class="ph-bold ph-warning" style="margin-left:2px"></i> متأخرة':'بعد '+r+' يوم'}</div>
         </div>
-        <div class="vdg-count">${group.clients.length} عميل</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-right:auto">
+          <div class="vdg-count">${group.clients.length} عميل</div>
+          ${doneCount>0?`<div style="background:var(--green-bg);color:var(--green);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:500">✔ ${doneCount} تمت</div>`:''}
+        </div>
       </div>
-      <div class="vdg-table"><table class="tbl">
-        <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>نوع الزيارة</th><th>الزيارة</th><th>ملاحظة الزيارة</th><th>ملاحظة العميل</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table></div>
+      <div class="vg-scroll-wrap">
+        <div class="vg-cards-row" id="vg-row-${group.day}">${cards}</div>
+      </div>
     </div>`;
   }).join('');
+
+  // init swipe/drag scroll
+  document.querySelectorAll('.vg-cards-row').forEach(row=>{
+    let isDown=false,startX,scrollLeft;
+    row.addEventListener('mousedown',e=>{if(e.target.tagName==='BUTTON'||e.target.tagName==='A'||e.target.tagName==='INPUT')return;isDown=true;row.style.cursor='grabbing';startX=e.pageX-row.offsetLeft;scrollLeft=row.scrollLeft;});
+    row.addEventListener('mouseleave',()=>{isDown=false;row.style.cursor='grab';});
+    row.addEventListener('mouseup',()=>{isDown=false;row.style.cursor='grab';});
+    row.addEventListener('mousemove',e=>{if(!isDown)return;e.preventDefault();const x=e.pageX-row.offsetLeft;row.scrollLeft=scrollLeft-(x-startX);});
+  });
+}
+
+function startEditNote(id, el){
+  const c=raw.find(x=>x.id===id); if(!c) return;
+  const cur=c.visit_note||'';
+  const inp=document.createElement('input');
+  inp.type='text'; inp.value=cur;
+  inp.style.cssText='width:100%;padding:4px 7px;border-radius:4px;border:1px solid var(--accent);background:var(--bg2);color:var(--text);font-size:12px;font-family:inherit;outline:none';
+  el.replaceWith(inp);
+  inp.focus();
+  const save=()=>{
+    const note=inp.value.trim();
+    const span=document.createElement('span');
+    span.className='vg-note-text';
+    span.onclick=()=>startEditNote(id,span);
+    span.innerHTML=note||'<span style="color:var(--text3);font-style:italic;font-size:11px">اضغط للكتابة...</span>';
+    inp.replaceWith(span);
+    if(note!==cur) saveVisitNote(id,note);
+  };
+  inp.addEventListener('blur',save);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur();if(e.key==='Escape'){inp.value=cur;inp.blur();}});
 }
 
 function renderUrgent(){
@@ -1483,19 +1591,19 @@ async function saveClient(){
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const visitDay=parseInt(document.getElementById('f-day').value)||0;
   const visitType=document.getElementById('f-visit').value;
-  const {nextDate,remaining}=visitDay?calcNextDate(visitDay,visitType):{nextDate:'',remaining:0};
   const data={
-    name,phone:document.getElementById('f-phone').value.trim(),
+    name,
+    phone:document.getElementById('f-phone').value.trim(),
     area:document.getElementById('f-area').value.trim(),
     elevators:parseInt(document.getElementById('f-elev').value)||1,
     contract:document.getElementById('f-contract').value,
     contract_custom:document.getElementById('f-contract-custom').value.trim(),
     duration:document.getElementById('f-duration').value.trim(),
     contract_value:parseFloat(document.getElementById('f-value').value)||null,
-    visit:visitType,visit_day:visitDay,
-    next_date:nextDate,remaining,
-    start_date:document.getElementById('f-start').value,
-    end_date:document.getElementById('f-end').value,
+    visit:visitType,
+    visit_day:visitDay,
+    start_date:document.getElementById('f-start').value||null,
+    end_date:document.getElementById('f-end').value||null,
     note:document.getElementById('f-note').value.trim(),
     needs_contact:document.getElementById('f-contact').checked,
     updated_at:new Date().toISOString()
@@ -1503,15 +1611,15 @@ async function saveClient(){
   try{
     if(editingId){
       await sbFetch(`clients?id=eq.${editingId}`,{method:'PATCH',body:JSON.stringify(data)});
-      showToast('تم تحديث بيانات العميل <i class="ph-bold ph-check"></i>','success');
+      showToast('تم تحديث بيانات العميل','success');
     }else{
       const maxId=raw.length?Math.max(...raw.map(c=>c.id)):0;
       data.id=maxId+1;data.created_at=new Date().toISOString();
       await sbFetch('clients',{method:'POST',body:JSON.stringify(data)});
-      showToast('تمت إضافة العميل <i class="ph-bold ph-check"></i>','success');
+      showToast('تمت إضافة العميل','success');
     }
     closeModal('client-modal');await loadData();
-  }catch(e){showToast('خطأ في الحفظ: '+e.message.slice(0,40),'error');}
+  }catch(e){showToast('خطأ في الحفظ: '+e.message.slice(0,80),'error');}
 }
 async function deleteClient(id){
   const c=raw.find(x=>x.id===id);
@@ -1544,33 +1652,32 @@ async function saveInstallation(){
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const data={
     client_name:name,
-    phone:document.getElementById('i-phone').value.trim(),
-    area:document.getElementById('i-area').value.trim(),
+    phone:document.getElementById('i-phone').value.trim()||null,
+    area:document.getElementById('i-area').value.trim()||null,
     elevators:parseInt(document.getElementById('i-elev').value)||1,
     contract_value:parseFloat(document.getElementById('i-value').value)||0,
     payment_method:document.getElementById('i-payment').value,
     maintenance_period:document.getElementById('i-maintenance').value,
-    start_date:document.getElementById('i-start').value,
     phase:document.getElementById('i-phase').value,
     phase1_paid:document.getElementById('i-p1').value==='1',
     phase2_paid:document.getElementById('i-p2').value==='1',
     phase3_paid:document.getElementById('i-p3').value==='1',
     is_done:document.getElementById('i-done').value==='1',
-    notes:document.getElementById('i-note').value.trim(),
-    updated_at:new Date().toISOString()
+    notes:document.getElementById('i-note').value.trim()||null,
   };
   try{
     if(editingInstId){
       await sbFetch(`installations?id=eq.${editingInstId}`,{method:'PATCH',body:JSON.stringify(data)});
-      showToast('تم التحديث <i class="ph-bold ph-check"></i>','success');
+      showToast('تم التحديث','success');
     }else{
       const maxId=installations.length?Math.max(...installations.map(i=>i.id)):0;
-      data.id=maxId+1;data.created_at=new Date().toISOString();
+      data.id=maxId+1;
+      data.created_at=new Date().toISOString();
       await sbFetch('installations',{method:'POST',body:JSON.stringify(data)});
-      showToast('تمت الإضافة <i class="ph-bold ph-check"></i>','success');
+      showToast('تمت الإضافة','success');
     }
     closeModal('inst-modal');await loadData();
-  }catch(e){showToast('خطأ: '+e.message.slice(0,50),'error');}
+  }catch(e){showToast('خطأ: '+e.message.slice(0,80),'error');}
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('show');}
