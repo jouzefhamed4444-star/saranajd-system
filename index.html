@@ -803,7 +803,7 @@ function doLogout(){
 
 async function sbFetch(path,opts={}){
   const r=await fetch(`${SB_URL}/rest/v1/${path}`,{
-    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal',...(opts.headers||{})},
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
     ...opts
   });
   if(!r.ok) throw new Error(await r.text());
@@ -958,16 +958,33 @@ function openPanel(id){
   let dots='';
   if(isAdmin && c.visit_day){
     const history=c.visit_history||[];
-    // generate last 12 months labels
     const now=new Date();
-    const months=Array.from({length:12},(_,i)=>{
-      const d=new Date(now.getFullYear(),now.getMonth()-11+i,1);
-      return {key:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,label:AR_MONTHS[d.getMonth()].slice(0,3)};
-    });
-    dots=months.map(m=>{
-      const done=history.includes(m.key);
-      const isCur=m.key===new Date().toISOString().substring(0,7);
-      return `<div class="md ${done?'md-done':isCur?'md-cur':'md-pend'}" title="${m.key}">${m.label}</div>`;
+    const curKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    // determine start month: use start_date or fallback to 12 months ago
+    let startMonth;
+    if(c.start_date){
+      const sd=new Date(c.start_date+'T00:00:00');
+      startMonth=new Date(sd.getFullYear(),sd.getMonth(),1);
+    } else {
+      startMonth=new Date(now.getFullYear(),now.getMonth()-11,1);
+    }
+    const endMonth=new Date(now.getFullYear(),now.getMonth(),1);
+    const months=[];
+    let cur=new Date(startMonth);
+    while(cur<=endMonth){
+      months.push({key:`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`,label:AR_MONTHS[cur.getMonth()].slice(0,3)});
+      cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
+    }
+    // limit to last 24 months max
+    const visibleMonths=months.slice(-24);
+    dots=visibleMonths.map(m=>{
+      const isCur=m.key===curKey;
+      const isPast=m.key<curKey;
+      const doneByHistory=history.includes(m.key);
+      const doneByToggle=c.visit_done_date===m.key;
+      // past months = always green (done). current month = follows toggle
+      const isDone=isPast||doneByHistory||doneByToggle;
+      return `<div class="md ${isDone?'md-done':isCur?'md-cur':'md-pend'}" title="${m.key}">${m.label}</div>`;
     }).join('');
   }
   document.getElementById('panel-name').textContent=c.name;
@@ -989,7 +1006,7 @@ function openPanel(id){
       ` : `<div style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px;background:var(--bg3);border-radius:4px;margin-top:4px"><i class="ph ph-lock" style="font-size:16px;margin-bottom:4px;display:block"></i>هذه البيانات متاحة للإدارة فقط</div>`}
     </div>
     ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات</div><div class="month-grid">${dots}</div>
-      ${(c.visit_history&&c.visit_history.length)?`<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:4px">${c.visit_history.slice(-12).map(m=>`<span style="background:var(--green-bg);color:var(--green);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:500">${m}</span>`).join('')}</div>`:''}
+
     </div>`:''}
     <div class="panel-sec"><div class="sec-lbl">الزيارة القادمة</div>
       <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?'كل '+c.visit+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
@@ -1007,6 +1024,9 @@ function openPanel(id){
     ${c.note?`<div class="panel-sec"><div class="sec-lbl">ملاحظة العميل</div><div class="note-box">${c.note}</div></div>`:''}
     <div class="panel-sec">
       ${(isAdmin && c.phone)?`<button class="wa-btn" onclick="window.open('https://wa.me/966${c.phone}','_blank')"><i class="ph-fill ph-whatsapp-logo" style="font-size:16px"></i> واتساب ${c.name.split(' ')[0]}</button>`:''}
+      ${c.location_url?`<button onclick="window.open(this.dataset.url,'_blank')" data-url="${c.location_url}" style="background:rgba(234,67,53,.1);color:#ea4335;border:1px solid rgba(234,67,53,.2);border-radius:var(--rs);padding:9px;font-size:13px;cursor:pointer;width:100%;font-family:inherit;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s"><i class="ph-duotone ph-map-pin" style="font-size:16px"></i> موقع العميل</button>`:''}
+      ${isAdmin?`<button onclick="saveLocation(${c.id})" style="background:${c.location_url?'rgba(234,67,53,.06)':'var(--bg3)'};color:${c.location_url?'#ea4335':'var(--text2)'};border:1px solid ${c.location_url?'rgba(234,67,53,.15)':'var(--border)'};border-radius:var(--rs);padding:9px;font-size:13px;cursor:pointer;width:100%;font-family:inherit;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s"><i class="ph-duotone ph-${c.location_url?'pencil-simple':'map-pin-plus'}" style="font-size:16px"></i> ${c.location_url?'تعديل موقع العميل':'إضافة موقع للعميل'}</button>`:''}
+
       ${isAdmin?`<button class="act-btn" onclick="closePanel();showEditModal(${c.id})"><i class="ph-duotone ph-pencil-simple" style="font-size:16px"></i> تعديل بيانات العميل</button>
       <button onclick="deleteClient(${c.id})" style="background:var(--red-bg);color:var(--red);border:1px solid rgba(239,68,68,.2);border-radius:var(--rs);padding:9px;font-size:13px;cursor:pointer;width:100%;font-family:inherit;font-weight:500"><i class="ph-duotone ph-trash" style="font-size:16px"></i> حذف</button>`:''}
     </div>`;
@@ -1134,6 +1154,30 @@ async function saveVisitNote(id, note){
 }
 
 // ---
+
+async function saveLocation(id){
+  if(!isAdmin) return;
+  const c=raw.find(x=>x.id===id); if(!c) return;
+  const url=prompt('أدخل رابط موقع العميل على خرائط جوجل:', c.location_url||'');
+  if(url===null) return; // cancelled
+  const oldUrl=c.location_url;
+  c.location_url=url||null;
+  openPanel(id); // refresh panel
+  try{
+    const res=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
+      method:'PATCH',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({location_url:url||null})
+    });
+    if(!res.ok) throw new Error('DB Error');
+    showToast(url?'✔ تم حفظ موقع العميل':'تم إزالة موقع العميل','success');
+  }catch(err){
+    c.location_url=oldUrl;
+    openPanel(id);
+    showToast('تعذّر حفظ الموقع','error');
+  }
+}
+
 // ─── Visits ───
 function setVisitView(mode){
   visitViewMode=mode;
@@ -1196,7 +1240,7 @@ function renderVisits(f){
       const historyDots=history.length?history.slice(-6).map(m=>{
         const[y,mo]=m.split('-');
         return `<span title="${y}-${mo}" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:9px;font-weight:600">${mo}</span>`;
-      }).join(''):'<span style="font-size:10px;color:var(--text3)">لا يوجد تاريخ</span>';
+      }).join(''):(c.start_date?`<span style="font-size:10px;color:var(--text3)"><i class="ph-duotone ph-calendar" style="font-size:12px;margin-left:3px"></i>بداية العقد: ${c.start_date}</span>`:'');
       return `<div class="vg-card ${isDone?'vg-card-done':''} ${c.needs_contact?'vg-card-urgent':''}" data-id="${c.id}">
         <div class="vg-card-top">
           <div class="vg-card-name" onclick="openPanel(${c.id})">${c.needs_contact?'<i class="ph-duotone ph-warning-circle" style="color:var(--red);font-size:14px"></i> ':''}<span style="font-weight:600;font-size:13px">${c.name}</span></div>
@@ -1468,14 +1512,13 @@ function renderReports(){
     else monthsData[key].inst++;
   };
   
-  // Only tie strictly to start_date for clients
+  // عقود الصيانة: من جدول العملاء (تعاقد فقط)
   raw.forEach(c => {
-    if(['تعاقد'].includes(c.contract)) addData(c.start_date, 'maint');
-    if(['تركيب/مجاني','تركيب','مجاني','استكمال تركيب'].includes(c.contract)) addData(c.start_date, 'inst');
+    if(c.contract==='تعاقد') addData(c.start_date, 'maint');
   });
-  // Tie strictly to created_at for installations if start_date isn't available
-  installations.forEach(i => {
-    addData(i.created_at, 'inst');
+  // عقود التركيب: من جدول العملاء (تركيب/مجاني) فقط — بدون تكرار من جدول التركيبات
+  raw.forEach(c => {
+    if(['تركيب/مجاني','تركيب','مجاني','استكمال تركيب'].includes(c.contract)) addData(c.start_date, 'inst');
   });
   
   // Ensure we have at least last 6 months even if empty
@@ -1658,6 +1701,7 @@ async function saveInstallation(){
     contract_value:parseFloat(document.getElementById('i-value').value)||0,
     payment_method:document.getElementById('i-payment').value,
     maintenance_period:document.getElementById('i-maintenance').value,
+    start_date:document.getElementById('i-start').value||null,
     phase:document.getElementById('i-phase').value,
     phase1_paid:document.getElementById('i-p1').value==='1',
     phase2_paid:document.getElementById('i-p2').value==='1',
