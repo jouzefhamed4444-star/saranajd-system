@@ -309,6 +309,7 @@ body.light-mode .admin-bar {
         <div class="nav-lbl hide-col">عمليات</div>
         <div class="nav-item" onclick="showPage('contracts',this)"><span class="nav-icon"><i class="ph-duotone ph-file-text"></i></span><span class="hide-col">عقود الصيانة</span></div>
         <div class="nav-item orange-nav" id="nav-inst" onclick="showPage('installations',this)"><span class="nav-icon"><i class="ph-duotone ph-crane"></i></span><span class="hide-col">عقود التركيب</span></div>
+        <div class="nav-item" id="nav-custom" onclick="showPage('custom',this)"><span class="nav-icon"><i class="ph-duotone ph-clipboard-text"></i></span><span class="hide-col">عقود مخصصة</span></div>
       </div>
       <div class="nav-sec">
         <div class="nav-lbl hide-col">المتابعة</div>
@@ -519,6 +520,39 @@ body.light-mode .admin-bar {
       </div>
     </div>
 
+    <!-- ═══ عقود مخصصة ═══ -->
+    <div class="pg" id="pg-custom">
+      <div class="content">
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px">
+          <div class="install-stat"><div class="install-stat-lbl">إجمالي العقود المخصصة</div><div class="install-stat-val" id="cust-total" style="color:var(--purple)">—</div></div>
+          <div class="install-stat"><div class="install-stat-lbl">إجمالي القيمة</div><div class="install-stat-val" id="cust-value" style="color:var(--green);font-size:16px">—</div><div class="install-stat-sub">ريال</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr">
+            <div class="card-title">عقود مخصصة</div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center">
+              <div class="search-wrap">
+                <input class="search-input" type="text" placeholder="بحث في العقود..." oninput="searchCustomContracts(this.value)" style="width:200px">
+                <span class="search-icon"><i class="ph ph-magnifying-glass"></i></span>
+              </div>
+              <select class="fsel" id="cust-goal-sel" onchange="filterCustomContracts()">
+                <option value="">كل الأهداف</option>
+                <option value="تعديل">تعديل</option>
+                <option value="نقل">نقل</option>
+                <option value="اكمال تركيب مصعد">اكمال تركيب</option>
+                <option value="أخرى">أخرى</option>
+              </select>
+              <button class="admin-btn btn-add" id="add-cust-btn" onclick="showCustomModal()" style="display:none">+ إضافة</button>
+            </div>
+          </div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>مصاعد</th><th>قيمة العقد</th><th>تاريخ العقد</th><th>هدف العقد</th><th>ملاحظات</th></tr></thead>
+            <tbody id="cust-tbody"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══ التقارير ═══ -->
     <div class="pg" id="pg-reports">
       <div class="content">
@@ -603,6 +637,34 @@ body.light-mode .admin-bar {
     <div class="modal-footer">
       <button class="admin-btn btn-cancel" onclick="closeModal('client-modal')">إلغاء</button>
       <button class="admin-btn btn-save" onclick="saveClient()"><i class="ph-duotone ph-floppy-disk" style="font-size:16px"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Contract Modal -->
+<div class="modal-ovl" id="cust-modal">
+  <div class="modal">
+    <div class="modal-title" id="cust-modal-title">إضافة عقد مخصص</div>
+    <div class="modal-grid">
+      <div class="ef"><label class="el">العميل *</label><input class="ei" id="c-name" placeholder="اسم العميل"></div>
+      <div class="ef"><label class="el">المنطقة</label><input class="ei" id="c-area"></div>
+      <div class="ef"><label class="el">عدد المصاعد</label><input class="ei" id="c-elev" type="number" min="1" value="1"></div>
+      <div class="ef"><label class="el">قيمة العقد (ريال)</label><input class="ei" id="c-value" type="number" placeholder="0"></div>
+      <div class="ef"><label class="el">تاريخ العقد</label><input class="ei" id="c-date" type="date"></div>
+      <div class="ef"><label class="el">هدف العقد</label>
+        <select class="es" id="c-goal">
+          <option value="تعديل">تعديل</option>
+          <option value="نقل">نقل</option>
+          <option value="اكمال تركيب مصعد">اكمال تركيب مصعد</option>
+          <option value="أخرى">أخرى</option>
+        </select>
+      </div>
+      <div class="ef"><label class="el">تفاصيل إضافية (إذا اخترت أخرى)</label><input class="ei" id="c-goal-custom" placeholder="اكتب هدف العقد..."></div>
+    </div>
+    <div class="ef" style="margin-top:6px"><label class="el">ملاحظات</label><textarea class="ei" id="c-note" rows="2"></textarea></div>
+    <div class="modal-footer">
+      <button class="admin-btn btn-cancel" onclick="closeModal('cust-modal')">إلغاء</button>
+      <button class="admin-btn btn-save" onclick="saveCustomContract()"><i class="ph-duotone ph-floppy-disk" style="font-size:16px"></i> حفظ</button>
     </div>
   </div>
 </div>
@@ -780,6 +842,7 @@ function startApp() {
     document.getElementById('admin-bar').style.display='flex';
     document.getElementById('admin-name-bar').textContent=me.name;
     document.getElementById('add-inst-btn').style.display='';
+    document.getElementById('add-cust-btn').style.display='';
     document.getElementById('nav-urgent').style.display='flex';
     document.getElementById('nav-inst').style.display='flex';
     document.getElementById('nav-reports').style.display='flex';
@@ -858,6 +921,7 @@ let raw=[],installations=[],filtered=[],pg=1,perPage=20;
 let contractF='',areaF='',clientSearchQ='';
 let contractsSearchQ='',contractsTypeF='';
 let visitsSearchQ='',visitViewMode='group',currentVisitFilter='';
+let customContracts=[],customSearchQ='',customGoalFilter='',editingCustId=null;
 let instSearchQ='';
 let editingId=null,editingInstId=null;
 
@@ -874,6 +938,8 @@ async function loadData(){
     });
     try{installations=await sbFetch('installations?select=*&order=id.asc');}
     catch(e){installations=[];}
+    try{customContracts=await sbFetch('custom_contracts?select=*&order=id.desc');}
+    catch(e){customContracts=[];}
 
     const areas=[...new Set(raw.map(c=>c.area).filter(Boolean))].sort();
     const asel=document.getElementById('area-sel');
@@ -960,7 +1026,7 @@ function openPanel(id){
     const history=c.visit_history||[];
     const now=new Date();
     const curKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-    // determine start month: use start_date or fallback to 12 months ago
+    // determine start & end month from contract dates
     let startMonth;
     if(c.start_date){
       const sd=new Date(c.start_date+'T00:00:00');
@@ -968,21 +1034,30 @@ function openPanel(id){
     } else {
       startMonth=new Date(now.getFullYear(),now.getMonth()-11,1);
     }
-    const endMonth=new Date(now.getFullYear(),now.getMonth(),1);
+    let endMonth;
+    if(c.end_date){
+      const ed=new Date(c.end_date+'T00:00:00');
+      endMonth=new Date(ed.getFullYear(),ed.getMonth(),1);
+    } else {
+      // fallback: 12 months from start
+      endMonth=new Date(startMonth.getFullYear(),startMonth.getMonth()+12,1);
+    }
+    // ensure we show at least up to current month
+    const nowMonth=new Date(now.getFullYear(),now.getMonth(),1);
+    if(endMonth<nowMonth) endMonth=nowMonth;
     const months=[];
     let cur=new Date(startMonth);
     while(cur<=endMonth){
       months.push({key:`${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`,label:AR_MONTHS[cur.getMonth()].slice(0,3)});
       cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
     }
-    // limit to last 24 months max
-    const visibleMonths=months.slice(-24);
-    dots=visibleMonths.map(m=>{
+    dots=months.map(m=>{
       const isCur=m.key===curKey;
       const isPast=m.key<curKey;
+      const isFuture=m.key>curKey;
       const doneByHistory=history.includes(m.key);
       const doneByToggle=c.visit_done_date===m.key;
-      // past months = always green (done). current month = follows toggle
+      // past months = auto green. current = follows toggle. future = pending
       const isDone=isPast||doneByHistory||doneByToggle;
       return `<div class="md ${isDone?'md-done':isCur?'md-cur':'md-pend'}" title="${m.key}">${m.label}</div>`;
     }).join('');
@@ -1040,7 +1115,7 @@ function closePanel(){
 
 // ─── Pages ───
 function showPage(page,el){
-  if (!isAdmin && ['urgent', 'installations', 'reports'].includes(page)) {
+  if (!isAdmin && ['urgent', 'installations', 'custom', 'reports'].includes(page)) {
     showToast('عذراً، هذه الصفحة متاحة للإدارة فقط', 'error');
     return;
   }
@@ -1048,12 +1123,13 @@ function showPage(page,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('pg-'+page).classList.add('active');
   if(el) el.classList.add('active');
-  const titles={clients:'العملاء',contracts:'العقود',visits:'الزيارات القادمة',urgent:'تحتاج تواصل',installations:'عقود التركيب',reports:'التقارير'};
+  const titles={clients:'العملاء',contracts:'عقود الصيانة',visits:'الزيارات القادمة',urgent:'تحتاج تواصل',installations:'عقود التركيب',custom:'عقود مخصصة',reports:'التقارير'};
   document.getElementById('pg-title').textContent=titles[page];
   if(page==='contracts') renderContracts();
   if(page==='visits') renderVisits(currentVisitFilter);
   if(page==='urgent') renderUrgent();
   if(page==='installations') renderInstallations();
+  if(page==='custom') renderCustomContracts();
   if(page==='reports') renderReports();
   document.getElementById('sidebar').classList.remove('mobile-open');
 }
@@ -1384,6 +1460,86 @@ function openInstPanel(id){
   document.getElementById('i-done').value=i.is_done?'1':'0';
   document.getElementById('i-note').value=i.notes||'';
   document.getElementById('inst-modal').classList.add('show');
+}
+
+
+// ─── Custom Contracts ───
+function renderCustomContracts(){
+  let list=[...customContracts];
+  if(customGoalFilter) list=list.filter(c=>c.goal===customGoalFilter||(customGoalFilter==='أخرى'&&!['تعديل','نقل','اكمال تركيب مصعد'].includes(c.goal)));
+  if(customSearchQ) list=list.filter(c=>c.client_name.includes(customSearchQ)||(c.area&&c.area.includes(customSearchQ)));
+  const totalVal=customContracts.reduce((s,c)=>s+(Number(c.contract_value)||0),0);
+  document.getElementById('cust-total').textContent=customContracts.length;
+  document.getElementById('cust-value').textContent=totalVal.toLocaleString('en-US');
+  document.getElementById('cust-tbody').innerHTML=list.map(c=>{
+    const goalBadge=c.goal==='تعديل'?'b-blue':c.goal==='نقل'?'b-amber':c.goal==='اكمال تركيب مصعد'?'b-green':'b-purple';
+    const goalText=c.goal==='أخرى'&&c.goal_custom?c.goal_custom:c.goal;
+    return `<tr onclick="${isAdmin?'openCustomPanel('+c.id+')':'void(0)'}">
+      <td style="color:var(--text3)">${c.id}</td>
+      <td style="font-weight:500">${c.client_name}</td>
+      <td style="color:var(--text2)">${c.area||'—'}</td>
+      <td style="text-align:center">${c.elevators||1}</td>
+      <td style="color:var(--green);font-weight:500">${fmtMoney(c.contract_value)}</td>
+      <td style="color:var(--text2)">${c.contract_date||'—'}</td>
+      <td><span class="b ${goalBadge}">${goalText}</span></td>
+      <td style="color:var(--text2);max-width:150px;overflow:hidden;text-overflow:ellipsis">${c.notes||'—'}</td>
+    </tr>`;
+  }).join('')||`<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">لا توجد عقود مخصصة</td></tr>`;
+}
+function searchCustomContracts(q){customSearchQ=q;renderCustomContracts();}
+function filterCustomContracts(){customGoalFilter=document.getElementById('cust-goal-sel').value;renderCustomContracts();}
+
+function showCustomModal(){
+  editingCustId=null;
+  document.getElementById('cust-modal-title').textContent='إضافة عقد مخصص';
+  ['c-name','c-area','c-note','c-goal-custom','c-date'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('c-elev').value='1';
+  document.getElementById('c-value').value='';
+  document.getElementById('c-goal').value='تعديل';
+  document.getElementById('cust-modal').classList.add('show');
+}
+function openCustomPanel(id){
+  if(!isAdmin) return;
+  const c=customContracts.find(x=>x.id===id); if(!c) return;
+  editingCustId=id;
+  document.getElementById('cust-modal-title').textContent='تعديل: '+c.client_name;
+  document.getElementById('c-name').value=c.client_name||'';
+  document.getElementById('c-area').value=c.area||'';
+  document.getElementById('c-elev').value=c.elevators||1;
+  document.getElementById('c-value').value=c.contract_value||0;
+  document.getElementById('c-date').value=c.contract_date||'';
+  document.getElementById('c-goal').value=c.goal||'تعديل';
+  document.getElementById('c-goal-custom').value=c.goal_custom||'';
+  document.getElementById('c-note').value=c.notes||'';
+  document.getElementById('cust-modal').classList.add('show');
+}
+async function saveCustomContract(){
+  const name=document.getElementById('c-name').value.trim();
+  if(!name){showToast('اسم العميل مطلوب','error');return;}
+  const data={
+    client_name:name,
+    area:document.getElementById('c-area').value.trim()||null,
+    elevators:parseInt(document.getElementById('c-elev').value)||1,
+    contract_value:parseFloat(document.getElementById('c-value').value)||0,
+    contract_date:document.getElementById('c-date').value||null,
+    goal:document.getElementById('c-goal').value,
+    goal_custom:document.getElementById('c-goal-custom').value.trim()||null,
+    notes:document.getElementById('c-note').value.trim()||null,
+  };
+  try{
+    if(editingCustId){
+      await sbFetch(`custom_contracts?id=eq.${editingCustId}`,{method:'PATCH',body:JSON.stringify(data)});
+      showToast('تم التحديث','success');
+    }else{
+      const maxId=customContracts.length?Math.max(...customContracts.map(c=>c.id)):0;
+      data.id=maxId+1;
+      data.created_at=new Date().toISOString();
+      await sbFetch('custom_contracts',{method:'POST',body:JSON.stringify(data)});
+      showToast('تمت الإضافة','success');
+    }
+    closeModal('cust-modal');await loadData();
+    showPage('custom',document.getElementById('nav-custom'));
+  }catch(e){showToast('خطأ: '+e.message.slice(0,80),'error');}
 }
 
 // ─── Reports (enhanced) ───
@@ -1737,6 +1893,7 @@ function showToast(msg,type=''){
 }
 document.getElementById('client-modal').addEventListener('click',function(e){if(e.target===this)closeModal('client-modal');});
 document.getElementById('inst-modal').addEventListener('click',function(e){if(e.target===this)closeModal('inst-modal');});
+document.getElementById('cust-modal').addEventListener('click',function(e){if(e.target===this)closeModal('cust-modal');});
 </script>
 </body>
 </html>
