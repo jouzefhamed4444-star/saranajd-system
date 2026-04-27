@@ -314,7 +314,7 @@ body.light-mode .admin-bar {
       <div class="nav-sec">
         <div class="nav-lbl hide-col">المتابعة</div>
         <div class="nav-item" onclick="showPage('visits',this)"><span class="nav-icon"><i class="ph-duotone ph-calendar-blank"></i></span><span class="hide-col">الزيارات</span></div>
-        <div class="nav-item red-nav" id="nav-urgent" onclick="showPage('urgent',this)"><span class="nav-icon"><i class="ph-duotone ph-warning-circle"></i></span><span class="hide-col">تحتاج تواصل</span></div>
+        <div class="nav-item red-nav" id="nav-urgent" onclick="showPage('urgent',this)"><span class="nav-icon"><i class="ph-duotone ph-warning-circle"></i></span><span class="hide-col">تحتاج تواصل</span><span id="urgent-badge" class="hide-col" style="color:var(--red);font-size:11px;font-weight:600;margin-right:auto;display:none"></span></div>
       </div>
       <div class="nav-sec">
         <div class="nav-lbl hide-col">التحليل</div>
@@ -476,6 +476,19 @@ body.light-mode .admin-bar {
             <tbody id="urgent-tbody"></tbody>
           </table></div>
         </div>
+
+        <div style="background:var(--amber-bg);border:1px solid rgba(245,158,11,.2);border-radius:var(--r);padding:12px 15px;margin:16px 0 16px;display:flex;align-items:center;gap:10px">
+          <i class="ph-duotone ph-timer" style="font-size:24px;color:var(--amber)"></i>
+          <div><div style="font-size:13px;font-weight:500;color:var(--amber)">عقود قاربت على الانتهاء أو انتهت</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">يتم إضافة العملاء تلقائياً عندما يتبقى شهرين أو أقل على انتهاء العقد</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><div class="card-title" id="expiry-lbl">—</div></div>
+          <div class="tw"><table class="tbl">
+            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>الهاتف</th><th>نهاية العقد</th><th>الحالة</th><th>السبب</th></tr></thead>
+            <tbody id="expiry-tbody"></tbody>
+          </table></div>
+        </div>
       </div>
     </div>
 
@@ -571,6 +584,7 @@ body.light-mode .admin-bar {
         <!-- Row 3 full -->
         <div class="rpt-full">
           <div class="card" style="margin:0"><div class="card-hdr"><div class="card-title"><i class="ph-duotone ph-crane" style="color:#f97316;font-size:18px"></i> ملخص عقود التركيب</div></div><div style="padding:15px" id="rpt6"></div></div>
+        <div class="card" style="margin:0"><div class="card-hdr"><div class="card-title"><i class="ph-duotone ph-warning-circle" style="color:var(--red);font-size:18px"></i> عملاء يحتاجون تواصل</div></div><div style="padding:15px" id="rpt7"></div></div>
         </div>
         
         <!-- Chart Row -->
@@ -947,6 +961,7 @@ async function loadData(){
     areas.forEach(a=>{const o=document.createElement('option');o.value=a;o.textContent=a;asel.appendChild(o);});
 
     updateStats();
+    renderUrgent(); // update badge count
     renderClients(applyClientFilters(),1);
     showToast('تم تحميل البيانات','success');
   }catch(e){
@@ -1042,9 +1057,7 @@ function openPanel(id){
       // fallback: 12 months from start
       endMonth=new Date(startMonth.getFullYear(),startMonth.getMonth()+12,1);
     }
-    // ensure we show at least up to current month
-    const nowMonth=new Date(now.getFullYear(),now.getMonth(),1);
-    if(endMonth<nowMonth) endMonth=nowMonth;
+    // DON'T go beyond end_date - respect contract period exactly
     const months=[];
     let cur=new Date(startMonth);
     while(cur<=endMonth){
@@ -1254,6 +1267,13 @@ async function saveLocation(id){
   }
 }
 
+
+function isContractExpired(c){
+  if(!c.end_date) return false;
+  const today=new Date(); today.setHours(0,0,0,0);
+  return new Date(c.end_date+'T00:00:00')<today;
+}
+
 // ─── Visits ───
 function setVisitView(mode){
   visitViewMode=mode;
@@ -1319,7 +1339,7 @@ function renderVisits(f){
       }).join(''):(c.start_date?`<span style="font-size:10px;color:var(--text3)"><i class="ph-duotone ph-calendar" style="font-size:12px;margin-left:3px"></i>بداية العقد: ${c.start_date}</span>`:'');
       return `<div class="vg-card ${isDone?'vg-card-done':''} ${c.needs_contact?'vg-card-urgent':''}" data-id="${c.id}">
         <div class="vg-card-top">
-          <div class="vg-card-name" onclick="openPanel(${c.id})">${c.needs_contact?'<i class="ph-duotone ph-warning-circle" style="color:var(--red);font-size:14px"></i> ':''}<span style="font-weight:600;font-size:13px">${c.name}</span></div>
+          <div class="vg-card-name" onclick="openPanel(${c.id})">${c.needs_contact?'<i class="ph-duotone ph-warning-circle" style="color:var(--red);font-size:14px"></i> ':''}<span style="font-weight:600;font-size:13px">${c.name}</span>${isContractExpired(c)?'<div style="font-size:10px;color:var(--red);margin-top:2px;font-weight:500"><i class="ph-duotone ph-timer" style="font-size:11px"></i> العقد منتهي — يحتاج تجديد</div>':''}</div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
             ${isAdmin?`<button onclick="toggleVisit(${c.id},event)" class="vg-visit-btn ${isDone?'vg-done':'vg-notdone'}">${isDone?'✔ تم':'✗ لم تتم'}</button>`:''}
           </div>
@@ -1397,6 +1417,48 @@ function renderUrgent(){
       <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
       <td style="color:var(--text2);max-width:220px;overflow:hidden;text-overflow:ellipsis">${c.note||'—'}</td>
     </tr>`).join('');
+
+  // Expiring/expired contracts (within 2 months or already expired)
+  const today=new Date(); today.setHours(0,0,0,0);
+  const twoMonthsLater=new Date(today.getFullYear(),today.getMonth()+2,today.getDate());
+  const expiring=raw.filter(c=>{
+    if(!c.end_date) return false;
+    const endD=new Date(c.end_date+'T00:00:00');
+    return endD<=twoMonthsLater;
+  }).sort((a,b)=>new Date(a.end_date)-new Date(b.end_date));
+
+  document.getElementById('expiry-lbl').textContent=`${expiring.length} عقد قارب أو انتهى`;
+  document.getElementById('expiry-tbody').innerHTML=expiring.map(c=>{
+    const endD=new Date(c.end_date+'T00:00:00');
+    const diffDays=Math.ceil((endD-today)/(1000*60*60*24));
+    let status,reason,rowClass;
+    if(diffDays<0){
+      status='<span class="b b-red">منتهي</span>';
+      reason=`انتهى منذ ${Math.abs(diffDays)} يوم — يحتاج تجديد`;
+      rowClass='row-red';
+    } else if(diffDays===0){
+      status='<span class="b b-red">ينتهي اليوم</span>';
+      reason='العقد ينتهي اليوم — يحتاج تجديد عاجل';
+      rowClass='row-red';
+    } else {
+      status=`<span class="b b-amber">متبقي ${diffDays} يوم</span>`;
+      reason=`العقد ينتهي قريباً — يُنصح بالتجديد`;
+      rowClass='';
+    }
+    return `<tr class="${rowClass}" onclick="openPanel(${c.id})" style="cursor:pointer">
+      <td style="color:var(--text3)">${c.id}</td><td style="font-weight:500">${c.name}</td>
+      <td style="color:var(--text2)">${c.area||'—'}</td>
+      <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
+      <td style="color:var(--text2)">${c.end_date?formatDateShortAr(c.end_date):'—'}</td>
+      <td>${status}</td>
+      <td style="color:var(--text2);font-size:11px;max-width:200px">${reason}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:20px">لا توجد عقود قريبة من الانتهاء</td></tr>';
+
+  // Update nav badge
+  const totalUrgent=u.length+expiring.length;
+  const badge=document.getElementById('urgent-badge');
+  if(badge){badge.textContent=totalUrgent;badge.style.display=totalUrgent>0?'inline':'none';}
 }
 
 // ─── Installations ───
@@ -1557,7 +1619,7 @@ function renderReports(){
     {l:'إجمالي المصاعد',v:totalElevators,c:'var(--accent)',sub:'مصعد مُركَّب'},
     {l:'قيمة عقود الصيانة',v:totalContractVal.toLocaleString('en-US')+' ﷼',c:'var(--green)',sub:'',sm:true},
     {l:'قيمة عقود التركيب',v:totalInstVal.toLocaleString('en-US')+' ﷼',c:'#f97316',sub:'',sm:true},
-    {l:'يحتاجون تواصل',v:needContact,c:'var(--red)',sub:'عميل'},
+    {l:'عملاء يحتاجون تواصل',v:needContact,c:'var(--red)',sub:'عميل'},
   ].map(s=>`
     <div class="rpt-kpi">
       <div class="rpt-kpi-val" style="color:${s.c};font-size:${s.sm?'15px':'24px'}">${s.v}</div>
@@ -1652,6 +1714,32 @@ function renderReports(){
       </div>
     </div>`:`<div style="color:var(--text3);font-size:12px;text-align:center;padding:24px">لا توجد عقود تركيب مضافة بعد</div>`;
 
+
+  // rpt7 - عملاء يحتاجون تواصل (عقود منتهية/قاربت)
+  const rptToday=new Date(); rptToday.setHours(0,0,0,0);
+  const rpt2MonthsLater=new Date(rptToday.getFullYear(),rptToday.getMonth()+2,rptToday.getDate());
+  const rptExpiring=raw.filter(c=>{
+    if(!c.end_date) return false;
+    return new Date(c.end_date+'T00:00:00')<=rpt2MonthsLater;
+  });
+  const rptExpired=rptExpiring.filter(c=>new Date(c.end_date+'T00:00:00')<rptToday).length;
+  const rptSoon=rptExpiring.length-rptExpired;
+  const rptNeedsContact=raw.filter(c=>c.needs_contact).length;
+  
+  document.getElementById('rpt7').innerHTML=`
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      <div class="rpt-kpi"><div class="rpt-kpi-val" style="color:var(--red)">${rptNeedsContact}</div><div class="rpt-kpi-lbl">يحتاجون تواصل</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val" style="color:var(--red)">${rptExpired}</div><div class="rpt-kpi-lbl">عقود منتهية</div></div>
+      <div class="rpt-kpi"><div class="rpt-kpi-val" style="color:var(--amber)">${rptSoon}</div><div class="rpt-kpi-lbl">تنتهي قريباً</div></div>
+    </div>
+    ${rptExpiring.length?`<div style="border-top:1px solid var(--border);padding-top:12px">
+      ${rptExpiring.slice(0,8).map(c=>{
+        const endD=new Date(c.end_date+'T00:00:00');
+        const diff=Math.ceil((endD-rptToday)/(1000*60*60*24));
+        return '<div class="rpt-row"><span>'+c.name+'</span><span style="font-weight:500;color:'+(diff<0?'var(--red)':'var(--amber)')+'">'+
+          (diff<0?'منتهي منذ '+Math.abs(diff)+' يوم':'متبقي '+diff+' يوم')+'</span></div>';
+      }).join('')}
+    </div>`:'<div style="color:var(--text3);font-size:12px;text-align:center;padding:16px">لا توجد عقود قريبة من الانتهاء</div>'}`;
 
   // Render ApexChart
   const monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
