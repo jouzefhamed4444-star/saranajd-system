@@ -87,10 +87,22 @@ body{font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;background:var(
 .iv{color:var(--text);font-weight:500;text-align:left;word-break:break-word}
 .note-box{background:var(--bg3);border-radius:var(--rs);padding:9px 11px;font-size:12px;color:var(--text2);margin-top:7px;line-height:1.6;border-right:2px solid var(--red)}
 .month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-top:7px}
-.md{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500}
+.md{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.md:hover{transform:scale(1.12);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .md-done{background:var(--green-bg);color:var(--green)}
 .md-cur{background:var(--blue-bg);color:var(--accent)}
 .md-pend{background:var(--bg4);color:var(--text3)}
+.md-notdone{background:var(--red-bg);color:var(--red)}
+.month-detail-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:450;display:none;align-items:center;justify-content:center}
+.month-detail-modal.show{display:flex}
+.month-detail-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;width:340px;max-width:94vw}
+.month-detail-title{font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.month-detail-status{display:flex;gap:8px;margin-bottom:12px}
+.month-detail-status button{flex:1;padding:9px;border-radius:var(--rs);font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--border);font-family:inherit;transition:all .15s}
+.month-detail-status .mds-done{background:var(--green-bg);color:var(--green);border-color:rgba(16,185,129,.3)}
+.month-detail-status .mds-done.active{background:var(--green);color:#fff}
+.month-detail-status .mds-notdone{background:var(--red-bg);color:var(--red);border-color:rgba(239,68,68,.3)}
+.month-detail-status .mds-notdone.active{background:var(--red);color:#fff}
 .ovl{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199;display:none}
 .ovl.show{display:block}
 .pg{display:none;flex:1;overflow:hidden;flex-direction:column}
@@ -467,7 +479,7 @@ body.light-mode .admin-bar {
         <div style="background:var(--red-bg);border:1px solid rgba(239,68,68,.2);border-radius:var(--r);padding:12px 15px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
           <i class="ph-duotone ph-warning-circle" style="font-size:24px;color:var(--red)"></i>
           <div><div style="font-size:13px;font-weight:500;color:var(--red)">عملاء يحتاجون تواصل عاجل</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">م/ إسلام — مسؤول عمليات الصيانة</div></div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">م/ إسلام هلال — مسؤول عمليات الصيانة</div></div>
         </div>
         <div class="card">
           <div class="card-hdr"><div class="card-title" id="urgent-lbl">—</div></div>
@@ -730,6 +742,27 @@ body.light-mode .admin-bar {
   </div>
 </div>
 
+<!-- Month Detail Modal -->
+<div class="month-detail-modal" id="month-detail-modal" onclick="if(event.target===this)closeMonthDetail()">
+  <div class="month-detail-box">
+    <div class="month-detail-title">
+      <span id="md-title">—</span>
+      <button class="close-btn" onclick="closeMonthDetail()"><i class="ph ph-x" style="font-size:14px"></i></button>
+    </div>
+    <div class="sec-lbl" style="margin-bottom:6px">حالة الزيارة</div>
+    <div class="month-detail-status">
+      <button class="mds-done" id="md-btn-done" onclick="setMonthStatus(true)">✔ تمت الزيارة</button>
+      <button class="mds-notdone" id="md-btn-notdone" onclick="setMonthStatus(false)">✗ لم تتم</button>
+    </div>
+    <div class="sec-lbl" style="margin-bottom:6px">ملاحظة الزيارة</div>
+    <textarea id="md-note" rows="3" style="width:100%;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" placeholder="اكتب ملاحظة لهذا الشهر..."></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="admin-btn btn-cancel" onclick="closeMonthDetail()">إلغاء</button>
+      <button class="admin-btn btn-save" onclick="saveMonthDetail()"><i class="ph-duotone ph-floppy-disk" style="font-size:16px"></i> حفظ</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -767,7 +800,7 @@ if(localStorage.getItem('theme') === 'light') {
 const USERS = {
   'hamid':   { pass:'saranajd2024', name:'م/ حامد ربيع',  role:'المدير التنفيذي', isAdmin:true },
   'youssef': { pass:'yn2024',       name:'يوسف حامد',     role:'مدير النظام',     isAdmin:true },
-  'islam':   { pass:'islam2024',    name:'م/ إسلام',       role:'مسؤول العمليات', isAdmin:true },
+  'islam':   { pass:'islam2024',    name:'م/ إسلام هلال',       role:'مسؤول العمليات', isAdmin:true },
 };
 let me = null, isAdmin = false;
 
@@ -1032,13 +1065,35 @@ function renderClients(list,p){
     <button class="pgr-btn" onclick="renderClients(filtered,${Math.min(tot,pg+1)})" ${pg===tot?'disabled':''}>التالي</button>`:'';
 }
 
-// ─── Panel ───
+function getVisitHistory(c) {
+  // Migration: handle all possible formats returned from Supabase
+  let h = c.visit_history;
+  if (!h) return {};
+  // If it came back as a JSON string (e.g., text column type), parse it first
+  if (typeof h === 'string') {
+    try { h = JSON.parse(h); } catch(e) { return {}; }
+  }
+  // Legacy array format: convert to object
+  if (Array.isArray(h)) {
+    const obj = {};
+    h.forEach(m => { obj[m] = { done: true, note: '' }; });
+    return obj;
+  }
+  // Already an object
+  if (typeof h === 'object') return h;
+  return {};
+}
+
 function openPanel(id){
-  const c=raw.find(x=>x.id===id);
+  id = parseInt(id, 10); // Ensure numeric comparison (fixes string vs number type mismatch)
+  const c=raw.find(x=>parseInt(x.id,10)===id);
+  if(!c) { console.error('openPanel: client not found, id='+id); return; }
   const {nextDate,remaining}=c.visit_day?calcNextDate(c.visit_day,c.visit):{nextDate:c.next_date||'',remaining:c.remaining||0};
+  const currentDueMonth = nextDate ? nextDate.substring(0,7) : '';
+
   let dots='';
   if(isAdmin && c.visit_day){
-    const history=c.visit_history||[];
+    const historyObj=getVisitHistory(c);
     const now=new Date();
     const curKey=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     // determine start & end month from contract dates
@@ -1065,20 +1120,29 @@ function openPanel(id){
       cur=new Date(cur.getFullYear(),cur.getMonth()+1,1);
     }
     dots=months.map(m=>{
-      const isCur=m.key===curKey;
-      const isPast=m.key<curKey;
-      const isFuture=m.key>curKey;
-      const doneByHistory=history.includes(m.key);
-      const doneByToggle=c.visit_done_date===m.key;
-      // past months = auto green. current = follows toggle. future = pending
-      const isDone=isPast||doneByHistory||doneByToggle;
-      return `<div class="md ${isDone?'md-done':isCur?'md-cur':'md-pend'}" title="${m.key}">${m.label}</div>`;
+      const isCur=m.key===currentDueMonth;
+      const monthData=historyObj[m.key];
+      const isDone=monthData?monthData.done:false;
+      const isExplicitNotDone=monthData&&monthData.done===false;
+      let cls='md-pend';
+      if(isDone) cls='md-done';
+      else if(isExplicitNotDone) cls='md-notdone';
+      else if(isCur) cls='md-cur';
+      return `<div class="md ${cls}" title="${m.key}" onclick="openMonthDetail(${c.id},'${m.key}')">${m.label}</div>`;
     }).join('');
   }
+  // Visit day label fix
+  const visitLabel = c.visit === 'شهرية' ? 'كل شهر' : c.visit === 'كل شهرين' ? 'كل شهرين' : c.visit;
+  // Get current due month's note from visit_history
+  const historyObj = getVisitHistory(c);
+  const currentMonthData = currentDueMonth ? historyObj[currentDueMonth] : null;
+  const currentVisitNote = currentMonthData ? (currentMonthData.note || '') : (c.visit_note || '');
+  const isDoneCurrentMonth = currentMonthData ? currentMonthData.done : (c.visit_done_date === currentDueMonth);
+
   document.getElementById('panel-name').textContent=c.name;
   document.getElementById('panel-name').dataset.id=c.id;
   document.getElementById('panel-body').innerHTML=`
-    ${c.needs_contact?`<div style="background:var(--red-bg);padding:9px 16px;border-bottom:1px solid rgba(239,68,68,.2);display:flex;align-items:center;gap:8px"><i class="ph-duotone ph-warning-circle" style="font-size:16px;color:var(--red)"></i><span style="font-size:12px;color:var(--red);font-weight:500">يحتاج تواصل — م/ إسلام</span></div>`:''}
+    ${c.needs_contact?`<div style="background:var(--red-bg);padding:9px 16px;border-bottom:1px solid rgba(239,68,68,.2);display:flex;align-items:center;gap:8px"><i class="ph-duotone ph-warning-circle" style="font-size:16px;color:var(--red)"></i><span style="font-size:12px;color:var(--red);font-weight:500">يحتاج تواصل — م/ إسلام هلال</span></div>`:''}
     <div class="panel-sec"><div class="sec-lbl">بيانات العميل</div>
       <div class="ir"><span class="il">المنطقة</span><span class="iv">${c.area||'—'}</span></div>
       <div class="ir"><span class="il">الهاتف</span><span class="iv" style="direction:ltr">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent)">${c.phone}</a>`:'—') : hiddenTxt}</span></div>
@@ -1093,19 +1157,17 @@ function openPanel(id){
       <div class="ir"><span class="il">نهاية العقد</span><span class="iv">${c.end_date||'—'}</span></div>
       ` : `<div style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px;background:var(--bg3);border-radius:4px;margin-top:4px"><i class="ph ph-lock" style="font-size:16px;margin-bottom:4px;display:block"></i>هذه البيانات متاحة للإدارة فقط</div>`}
     </div>
-    ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات</div><div class="month-grid">${dots}</div>
-
-    </div>`:''}
-    <div class="panel-sec"><div class="sec-lbl">الزيارة القادمة</div>
-      <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?'كل '+c.visit+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
+    ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات <span style="font-size:10px;color:var(--text3);font-weight:400;margin-right:6px">(اضغط على أي شهر للتفاصيل)</span></div><div class="month-grid">${dots}</div></div>`:''}
+    <div class="panel-sec"><div class="sec-lbl">الزيارة المستحقة${currentDueMonth ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">('+currentDueMonth+')</span>' : ''}</div>
+      <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?visitLabel+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
       <div class="ir"><span class="il">الزيارة القادمة</span><span class="iv" style="color:var(--accent)">${nextDate?formatDateAr(nextDate):'—'}</span></div>
       <div class="ir"><span class="il">المتبقي</span><span class="iv">${c.visit_day?rb(remaining):'—'}</span></div>
       <div class="ir"><span class="il">الزيارة</span><span class="iv">
-        ${isAdmin?`<button onclick="toggleVisit(${c.id},{stopPropagation:()=>{}})" style="padding:5px 14px;border-radius:5px;font-size:12px;font-weight:600;border:none;cursor:pointer;color:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green)':'var(--red)'};background:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green-bg)':'var(--red-bg)'};border:1px solid ${c.visit_done_date==(nextDate||'').substring(0,7)?'rgba(16,185,129,.25)':'rgba(239,68,68,.25)'}">${c.visit_done_date==(nextDate||'').substring(0,7)?'✔ تم':'✗ لم تتم'}</button>`:`<span style="color:${c.visit_done_date==(nextDate||'').substring(0,7)?'var(--green)':'var(--red)'};font-weight:600">${c.visit_done_date==(nextDate||'').substring(0,7)?'تم ✔':'لم تتم'}</span>`}
+        ${isAdmin?`<button onclick="toggleVisit(${c.id},{stopPropagation:()=>{}})" style="padding:5px 14px;border-radius:5px;font-size:12px;font-weight:600;border:none;cursor:pointer;color:${isDoneCurrentMonth?'var(--green)':'var(--red)'};background:${isDoneCurrentMonth?'var(--green-bg)':'var(--red-bg)'};border:1px solid ${isDoneCurrentMonth?'rgba(16,185,129,.25)':'rgba(239,68,68,.25)'}">${isDoneCurrentMonth?'✔ تم':'✗ لم تتم'}</button>`:`<span style="color:${isDoneCurrentMonth?'var(--green)':'var(--red)'};font-weight:600">${isDoneCurrentMonth?'تم ✔':'لم تتم'}</span>`}
       </span></div>
       <div class="ir" style="align-items:flex-start"><span class="il" style="padding-top:6px">ملاحظة الزيارة</span>
         <span class="iv" style="flex:1">
-          ${isAdmin?`<textarea id="panel-visit-note" rows="2" onchange="saveVisitNote(${c.id},this.value)" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${c.visit_note||''}</textarea>`:`<span style="color:var(--text2)">${c.visit_note||'—'}</span>`}
+          ${isAdmin?`<textarea id="panel-visit-note" rows="2" onchange="saveVisitNote(${c.id},this.value)" style="width:100%;padding:6px 8px;border-radius:5px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${currentVisitNote}</textarea>`:`<span style="color:var(--text2)">${currentVisitNote||'—'}</span>`}
         </span>
       </div>
     </div>
@@ -1179,26 +1241,27 @@ function renderContracts(){
 
 
 async function toggleVisit(id, e){
-  e.stopPropagation();
+  if (e && e.stopPropagation) e.stopPropagation();
   if(!isAdmin){showToast('للإدارة فقط','error');return;}
-  const c=raw.find(x=>x.id===id);
+  id = parseInt(id, 10);
+  const c=raw.find(x=>parseInt(x.id,10)===id);
   if(!c) return;
   const currentMonth = c.next_date ? c.next_date.substring(0,7) : new Date().toISOString().substring(0,7);
-  const isDone = c.visit_done_date===currentMonth;
-  const newDate = isDone ? null : currentMonth;
-  const oldDate = c.visit_done_date;
-  const oldHistory = c.visit_history ? [...c.visit_history] : [];
-
-  // update visit_history: add month if done, keep it even after day passes
-  let history = c.visit_history ? [...c.visit_history] : [];
-  if(!isDone){
-    if(!history.includes(currentMonth)) history.push(currentMonth);
-  } else {
-    history = history.filter(m=>m!==currentMonth);
+  const historyObj = getVisitHistory(c);
+  
+  const isDone = historyObj[currentMonth] ? historyObj[currentMonth].done : (c.visit_done_date === currentMonth);
+  const newDone = !isDone;
+  
+  const oldHistory = JSON.parse(JSON.stringify(getVisitHistory(c)));
+  const oldDoneDate = c.visit_done_date;
+  
+  if (!historyObj[currentMonth]) {
+    historyObj[currentMonth] = { done: false, note: '' };
   }
-
-  c.visit_done_date = newDate;
-  c.visit_history = history;
+  historyObj[currentMonth].done = newDone;
+  c.visit_history = historyObj;
+  c.visit_done_date = newDone ? currentMonth : null;
+  
   renderVisits(currentVisitFilter);
   // refresh panel if open
   if(document.getElementById('panel').classList.contains('open')){
@@ -1210,37 +1273,170 @@ async function toggleVisit(id, e){
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({visit_done_date:newDate, visit_history:history})
+      body:JSON.stringify({visit_done_date: c.visit_done_date, visit_history: historyObj})
     });
     if(!res.ok) throw new Error('DB Error');
-    showToast(newDate ? '✔ تمت الزيارة — تم التسجيل في التقدم' : 'تم إلغاء الزيارة', 'success');
+    showToast(newDone ? '✔ تمت الزيارة للشهر المستحق' : 'تم إلغاء الزيارة للشهر المستحق', 'success');
   } catch(err){
-    c.visit_done_date = oldDate;
     c.visit_history = oldHistory;
+    c.visit_done_date = oldDoneDate;
     renderVisits(currentVisitFilter);
+    if(document.getElementById('panel').classList.contains('open')){
+      const pid = parseInt(document.getElementById('panel-name').dataset.id||0);
+      if(pid===id) openPanel(id);
+    }
     showToast('تعذّر الحفظ في قاعدة البيانات', 'error');
   }
 }
 
 async function saveVisitNote(id, note){
   if(!isAdmin) return;
-  const c=raw.find(x=>x.id===id);
+  id = parseInt(id, 10);
+  const c=raw.find(x=>parseInt(x.id,10)===id);
   if(!c) return;
+  const currentMonth = c.next_date ? c.next_date.substring(0,7) : new Date().toISOString().substring(0,7);
+  const historyObj = getVisitHistory(c);
+  if (!historyObj[currentMonth]) {
+    historyObj[currentMonth] = { done: false, note: '' };
+  }
   const oldNote = c.visit_note;
+  const oldHistory = JSON.parse(JSON.stringify(getVisitHistory(c)));
+  
   c.visit_note = note;
+  historyObj[currentMonth].note = note;
+  c.visit_history = historyObj;
+  
+  if(document.getElementById('panel').classList.contains('open')){
+    const pid = parseInt(document.getElementById('panel-name').dataset.id||0);
+    if(pid===id) openPanel(id);
+  }
+  
   try {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({visit_note:note})
+      body:JSON.stringify({visit_note:note, visit_history:historyObj})
     });
     if(!res.ok) throw new Error('DB Error');
-    showToast('✔ تم حفظ ملاحظة الزيارة', 'success');
+    showToast('✔ تم حفظ ملاحظة الزيارة للشهر المستحق', 'success');
   } catch(err){
     c.visit_note = oldNote;
+    c.visit_history = oldHistory;
+    if(document.getElementById('panel').classList.contains('open')){
+      const pid = parseInt(document.getElementById('panel-name').dataset.id||0);
+      if(pid===id) openPanel(id);
+    }
     showToast('تعذّر الحفظ', 'error');
   }
 }
+
+// ─── Month Detail Modal Logic ───
+let activeMonthDetail = { clientId: null, monthKey: null, done: false };
+
+function openMonthDetail(clientId, monthKey) {
+  clientId = parseInt(clientId, 10);
+  const c = raw.find(x => parseInt(x.id,10) === clientId);
+  if (!c) return;
+  activeMonthDetail.clientId = clientId;
+  activeMonthDetail.monthKey = monthKey;
+  
+  const historyObj = getVisitHistory(c);
+  const monthData = historyObj[monthKey] || { done: false, note: '' };
+  activeMonthDetail.done = monthData.done;
+  
+  document.getElementById('md-title').textContent = `${c.name} - ${monthKey}`;
+  document.getElementById('md-note').value = monthData.note || '';
+  
+  updateMonthDetailButtons();
+  
+  document.getElementById('month-detail-modal').classList.add('show');
+}
+
+function updateMonthDetailButtons() {
+  const doneBtn = document.getElementById('md-btn-done');
+  const notDoneBtn = document.getElementById('md-btn-notdone');
+  if (activeMonthDetail.done) {
+    doneBtn.classList.add('active');
+    notDoneBtn.classList.remove('active');
+  } else {
+    doneBtn.classList.remove('active');
+    notDoneBtn.classList.add('active');
+  }
+}
+
+function setMonthStatus(done) {
+  activeMonthDetail.done = done;
+  updateMonthDetailButtons();
+}
+
+function closeMonthDetail() {
+  document.getElementById('month-detail-modal').classList.remove('show');
+}
+
+async function saveMonthDetail() {
+  const { clientId, monthKey, done } = activeMonthDetail;
+  const c = raw.find(x => parseInt(x.id,10) === parseInt(clientId,10));
+  if (!c) return;
+  
+  const note = document.getElementById('md-note').value.trim();
+  const historyObj = getVisitHistory(c);
+  
+  // Save old state in case of network failure
+  const oldHistory = JSON.parse(JSON.stringify(getVisitHistory(c)));
+  const oldDoneDate = c.visit_done_date;
+  const oldVisitNote = c.visit_note;
+  
+  // Update local state
+  historyObj[monthKey] = { done: done, note: note };
+  c.visit_history = historyObj;
+  
+  // If editing the current due month, sync with current fields
+  const currentDueMonth = c.next_date ? c.next_date.substring(0,7) : '';
+  if (monthKey === currentDueMonth) {
+    c.visit_done_date = done ? monthKey : null;
+    c.visit_note = note;
+  }
+  
+  closeMonthDetail();
+  
+  // Refresh panel if open
+  if (document.getElementById('panel').classList.contains('open')) {
+    openPanel(clientId);
+  }
+  renderVisits(currentVisitFilter);
+  
+  try {
+    const patchData = { visit_history: historyObj };
+    if (monthKey === currentDueMonth) {
+      patchData.visit_done_date = done ? monthKey : null;
+      patchData.visit_note = note;
+    }
+    
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(patchData)
+    });
+    if (!res.ok) throw new Error('DB Error');
+    showToast('✔ تم حفظ تفاصيل الشهر بنجاح', 'success');
+  } catch(err) {
+    // Revert local state
+    c.visit_history = oldHistory;
+    c.visit_done_date = oldDoneDate;
+    c.visit_note = oldVisitNote;
+    if (document.getElementById('panel').classList.contains('open')) {
+      openPanel(clientId);
+    }
+    renderVisits(currentVisitFilter);
+    showToast('تعذّر حفظ تفاصيل الشهر', 'error');
+  }
+}
+
 
 // ---
 
@@ -1332,8 +1528,9 @@ function renderVisits(f){
     const doneCount=group.clients.filter(c=>c.visit_done_date==(c.next_date||'').substring(0,7)).length;
     const cards=group.clients.map(c=>{
       const isDone=c.visit_done_date==(c.next_date||'').substring(0,7);
-      const history=c.visit_history||[];
-      const historyDots=history.length?history.slice(-6).map(m=>{
+      const historyObj=getVisitHistory(c);
+      const doneMonths=Object.keys(historyObj).filter(m=>historyObj[m].done).sort();
+      const historyDots=doneMonths.length?doneMonths.slice(-6).map(m=>{
         const[y,mo]=m.split('-');
         return `<span title="${y}-${mo}" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--green-bg);color:var(--green);font-size:9px;font-weight:600">${mo}</span>`;
       }).join(''):(c.start_date?`<span style="font-size:10px;color:var(--text3)"><i class="ph-duotone ph-calendar" style="font-size:12px;margin-left:3px"></i>بداية العقد: ${c.start_date}</span>`:'');
@@ -1619,7 +1816,7 @@ function renderReports(){
     {l:'إجمالي المصاعد',v:totalElevators,c:'var(--accent)',sub:'مصعد مُركَّب'},
     {l:'قيمة عقود الصيانة',v:totalContractVal.toLocaleString('en-US')+' ﷼',c:'var(--green)',sub:'',sm:true},
     {l:'قيمة عقود التركيب',v:totalInstVal.toLocaleString('en-US')+' ﷼',c:'#f97316',sub:'',sm:true},
-    {l:'عملاء يحتاجون تواصل',v:needContact,c:'var(--red)',sub:'عميل'},
+    {l:'عملاء يحتاجون تواصل',v:needContact,c:'var(--red)',sub:''},
   ].map(s=>`
     <div class="rpt-kpi">
       <div class="rpt-kpi-val" style="color:${s.c};font-size:${s.sm?'15px':'24px'}">${s.v}</div>
@@ -1825,7 +2022,7 @@ function renderReports(){
   // rpt4 team
   document.getElementById('rpt4').innerHTML=`
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-      ${[{n:'م/ حامد ربيع',r:'المدير التنفيذي',i:'<i class="ph-duotone ph-buildings"></i>',c:'var(--accent)'},{n:'يوسف حامد',r:'مدير النظام',i:'<i class="ph-duotone ph-desktop"></i>',c:'var(--purple)'},{n:'م/ إسلام',r:'مسؤول العمليات',i:'<i class="ph-duotone ph-wrench"></i>',c:'var(--green)'}].map(p=>`
+      ${[{n:'م/ حامد ربيع',r:'المدير التنفيذي',i:'<i class="ph-duotone ph-buildings"></i>',c:'var(--accent)'},{n:'يوسف حامد',r:'مدير النظام',i:'<i class="ph-duotone ph-desktop"></i>',c:'var(--purple)'},{n:'م/ إسلام هلال',r:'مسؤول العمليات',i:'<i class="ph-duotone ph-wrench"></i>',c:'var(--green)'}].map(p=>`
       <div style="background:var(--bg3);border-radius:8px;padding:14px;text-align:center;border:1px solid var(--border)">
         <div style="font-size:24px;margin-bottom:7px">${p.i}</div>
         <div style="font-size:13px;font-weight:600;color:${p.c};margin-bottom:3px">${p.n}</div>
