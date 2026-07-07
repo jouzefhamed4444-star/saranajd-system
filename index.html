@@ -371,8 +371,11 @@ body.light-mode .admin-bar {
     <!-- ═══ العملاء ═══ -->
     <div class="pg active" id="pg-clients">
       <div class="content">
-        <div class="stats">
+        <div class="stats" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr))">
           <div class="stat"><div class="stat-lbl">إجمالي العملاء</div><div class="stat-val" id="s1">—</div></div>
+          <div class="stat"><div class="stat-lbl">العملاء الساريين</div><div class="stat-val" id="s-active" style="color:var(--green)">—</div></div>
+          <div class="stat"><div class="stat-lbl">العملاء المؤرشفين</div><div class="stat-val" id="s-archived" style="color:var(--text3)">—</div></div>
+          <div class="stat"><div class="stat-lbl">يحتاج تواصل</div><div class="stat-val" id="s-need-contact" style="color:var(--red)">—</div></div>
           <div class="stat"><div class="stat-lbl">تعاقد نشط</div><div class="stat-val" id="s2" style="color:var(--accent)">—</div></div>
           <div class="stat"><div class="stat-lbl">تركيب / مجاني</div><div class="stat-val" id="s3" style="color:var(--green)">—</div></div>
           <div class="stat"><div class="stat-lbl">عاجلة هذا الأسبوع</div><div class="stat-val" id="s4" style="color:var(--red)">—</div></div>
@@ -393,10 +396,22 @@ body.light-mode .admin-bar {
               <select class="fsel" id="area-sel" onchange="filterArea(this.value)">
                 <option value="">كل المناطق</option>
               </select>
+              <select class="fsel" id="status-sel" onchange="filterCustomerStatus(this.value)">
+                <option value="">جميع العملاء</option>
+                <option value="ساري">ساري</option>
+                <option value="مؤرشف">مؤرشف</option>
+                <option value="يحتاج تواصل">يحتاج تواصل</option>
+              </select>
+              <select class="fsel" id="sched-sel" onchange="filterScheduling(this.value)">
+                <option value="">كل حالات الجدولة</option>
+                <option value="تم الجدولة">تم الجدولة</option>
+                <option value="لم تتم الجدولة">لم تتم الجدولة</option>
+                <option value="معلق">معلق</option>
+              </select>
             </div>
           </div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>#</th><th>اسم العميل</th><th>المنطقة</th><th>الهاتف</th><th>مصاعد</th><th>العقد</th><th>قيمة العقد</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th></tr></thead>
+            <thead><tr><th>#</th><th>اسم العميل</th><th>المنطقة</th><th>الهاتف</th><th>مصاعد</th><th>العقد</th><th>حالة الجدولة</th><th>حالة العميل</th><th>قيمة العقد</th><th>يوم الزيارة</th><th>الزيارة القادمة</th><th>المتبقي</th></tr></thead>
             <tbody id="clients-tbody"></tbody>
           </table></div>
           <div class="pager" id="pager"></div>
@@ -657,6 +672,20 @@ body.light-mode .admin-bar {
       </div>
       <div class="ef"><label class="el">بداية العقد</label><input class="ei" id="f-start" type="date"></div>
       <div class="ef"><label class="el">نهاية العقد</label><input class="ei" id="f-end" type="date"></div>
+      <div class="ef"><label class="el">حالة الجدولة</label>
+        <select class="es" id="f-scheduling">
+          <option value="لم تتم الجدولة">لم تتم الجدولة</option>
+          <option value="تم الجدولة">تم الجدولة</option>
+          <option value="معلق">معلق</option>
+        </select>
+      </div>
+      <div class="ef"><label class="el">حالة العميل</label>
+        <select class="es" id="f-customer-status">
+          <option value="ساري">ساري</option>
+          <option value="مؤرشف">مؤرشف</option>
+          <option value="يحتاج تواصل">يحتاج تواصل</option>
+        </select>
+      </div>
     </div>
     <div class="ef" style="margin-top:6px"><label class="el">ملاحظة</label><textarea class="ei" id="f-note" rows="2"></textarea></div>
     <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer;margin-top:8px"><input type="checkbox" id="f-contact"> يحتاج تواصل (تمييز أحمر)</label>
@@ -750,10 +779,11 @@ body.light-mode .admin-bar {
       <button class="close-btn" onclick="closeMonthDetail()"><i class="ph ph-x" style="font-size:14px"></i></button>
     </div>
     <div class="sec-lbl" style="margin-bottom:6px">حالة الزيارة</div>
-    <div class="month-detail-status">
+    <div class="month-detail-status" style="margin-bottom:8px">
       <button class="mds-done" id="md-btn-done" onclick="setMonthStatus(true)">✔ تمت الزيارة</button>
       <button class="mds-notdone" id="md-btn-notdone" onclick="setMonthStatus(false)">✗ لم تتم</button>
     </div>
+    <button id="md-btn-clear" onclick="setMonthStatus(null)" onmouseenter="this.style.background='var(--bg4)';this.style.color='var(--text)'" onmouseleave="if(!this.classList.contains('active')){this.style.background='var(--bg3)';this.style.color='var(--text2)'}" style="width:100%;padding:8px;border-radius:var(--rs);font-size:12px;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text2);margin-bottom:12px;font-family:inherit;font-weight:500;transition:all 0.15s">إزالة التحديد وإعادة الشهر لحالته الأصلية</button>
     <div class="sec-lbl" style="margin-bottom:6px">ملاحظة الزيارة</div>
     <textarea id="md-note" rows="3" style="width:100%;padding:8px 10px;border-radius:var(--rs);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;resize:vertical;outline:none;transition:border .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" placeholder="اكتب ملاحظة لهذا الشهر..."></textarea>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
@@ -965,7 +995,7 @@ function updateNextDatePreview(){
 
 // ─── Data & state ───
 let raw=[],installations=[],filtered=[],pg=1,perPage=20;
-let contractF='',areaF='',clientSearchQ='';
+let contractF='',areaF='',clientSearchQ='',schedF='',statusF='';
 let contractsSearchQ='',contractsTypeF='';
 let visitsSearchQ='',visitViewMode='group',currentVisitFilter='';
 let customContracts=[],customSearchQ='',customGoalFilter='',editingCustId=null;
@@ -977,11 +1007,28 @@ async function loadData(){
     document.getElementById('pg-sub').textContent='جاري التحميل...';
     raw=await sbFetch('clients?select=*&order=id.asc');
     raw=raw.map(c=>{
-      if(c.visit_day&&c.visit_day>0){
-        const {nextDate,remaining}=calcNextDate(c.visit_day,c.visit);
-        return {...c,next_date:nextDate,remaining};
+      let sched = c.scheduling_status || 'لم تتم الجدولة';
+      let cust = c.customer_status || 'ساري';
+      let note = c.note ? c.note.trim() : '';
+      if (note === 'تم الجدولة') {
+        sched = 'تم الجدولة';
       }
-      return c;
+      if (sched === 'تم الجدولة') {
+        cust = 'ساري';
+      }
+      let needs_contact = c.needs_contact;
+      if (cust === 'يحتاج تواصل') {
+        needs_contact = true;
+      }
+      
+      let next_date = c.next_date;
+      let remaining = c.remaining;
+      if(c.visit_day&&c.visit_day>0){
+        const res=calcNextDate(c.visit_day,c.visit);
+        next_date=res.nextDate;
+        remaining=res.remaining;
+      }
+      return {...c, scheduling_status: sched, customer_status: cust, needs_contact, next_date, remaining};
     });
     try{installations=await sbFetch('installations?select=*&order=id.asc');}
     catch(e){installations=[];}
@@ -1004,7 +1051,15 @@ async function loadData(){
 }
 
 function updateStats(){
+  const activeCount = raw.filter(c => (c.customer_status || 'ساري') === 'ساري').length;
+  const archivedCount = raw.filter(c => (c.customer_status || 'ساري') === 'مؤرشف').length;
+  const needContactCount = raw.filter(c => (c.customer_status || 'ساري') === 'يحتاج تواصل').length;
+
   document.getElementById('s1').textContent=raw.length;
+  document.getElementById('s-active').textContent=activeCount;
+  document.getElementById('s-archived').textContent=archivedCount;
+  document.getElementById('s-need-contact').textContent=needContactCount;
+
   document.getElementById('s2').textContent=raw.filter(c=>c.contract==='تعاقد').length;
   document.getElementById('s3').textContent=raw.filter(c=>isInstall(c)).length;
   document.getElementById('s4').textContent=raw.filter(c=>c.visit_day&&c.remaining<=7).length;
@@ -1033,12 +1088,16 @@ function applyClientFilters(){
   if(contractF==='تركيب/مجاني') r=r.filter(c=>isInstall(c));
   else if(contractF) r=r.filter(c=>c.contract===contractF);
   if(areaF) r=r.filter(c=>c.area===areaF);
+  if(schedF) r=r.filter(c=>(c.scheduling_status||'لم تتم الجدولة')===schedF);
+  if(statusF) r=r.filter(c=>(c.customer_status||'ساري')===statusF);
   if(clientSearchQ) r=r.filter(c=>c.name.includes(clientSearchQ)||(c.phone&&c.phone.includes(clientSearchQ))||(c.area&&c.area.includes(clientSearchQ)));
   return r;
 }
 function searchClients(q){clientSearchQ=q;renderClients(applyClientFilters(),1);}
 function filterContract(v){contractF=v;renderClients(applyClientFilters(),1);}
 function filterArea(v){areaF=v;renderClients(applyClientFilters(),1);}
+function filterScheduling(v){schedF=v;renderClients(applyClientFilters(),1);}
+function filterCustomerStatus(v){statusF=v;renderClients(applyClientFilters(),1);}
 
 function renderClients(list,p){
   pg=p||1; filtered=list;
@@ -1051,6 +1110,20 @@ function renderClients(list,p){
       <td style="direction:ltr;text-align:right">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">${c.phone}</a>`:'—') : hiddenTxt}</td>
       <td style="text-align:center">${c.elevators}</td>
       <td>${isAdmin ? cb(c.contract) : hiddenTxt}</td>
+      <td>
+        ${(() => {
+          const sched = c.scheduling_status || 'لم تتم الجدولة';
+          const cls = sched === 'تم الجدولة' ? 'b-green' : sched === 'معلق' ? 'b-amber' : 'b-red';
+          return `<span class="b ${cls}">${sched}</span>`;
+        })()}
+      </td>
+      <td>
+        ${(() => {
+          const cust = c.customer_status || 'ساري';
+          const cls = cust === 'ساري' ? 'b-blue' : cust === 'مؤرشف' ? 'b-gray' : 'b-red';
+          return `<span class="b ${cls}">${cust}</span>`;
+        })()}
+      </td>
       <td style="color:var(--text2)">${isAdmin ? fmtMoney(c.contract_value) : hiddenTxt}</td>
       <td style="color:var(--accent);font-weight:600">${c.visit_day?'يوم '+c.visit_day:'—'}</td>
       <td style="color:var(--text2)">${c.next_date?formatDateShortAr(c.next_date):'—'}</td>
@@ -1147,6 +1220,24 @@ function openPanel(id){
       <div class="ir"><span class="il">المنطقة</span><span class="iv">${c.area||'—'}</span></div>
       <div class="ir"><span class="il">الهاتف</span><span class="iv" style="direction:ltr">${isAdmin ? (c.phone?`<a href="tel:+966${c.phone}" style="color:var(--accent)">${c.phone}</a>`:'—') : hiddenTxt}</span></div>
       <div class="ir"><span class="il">عدد المصاعد</span><span class="iv">${c.elevators}</span></div>
+      <div class="ir"><span class="il">حالة الجدولة</span><span class="iv">
+        ${isAdmin ? `
+          <select class="fsel" onchange="updateSchedulingStatus(${c.id}, this.value)" style="padding:2px 6px;font-size:11px">
+            <option value="لم تتم الجدولة" ${(c.scheduling_status||'لم تتم الجدولة')==='لم تتم الجدولة'?'selected':''}>لم تتم الجدولة</option>
+            <option value="تم الجدولة" ${(c.scheduling_status||'لم تتم الجدولة')==='تم الجدولة'?'selected':''}>تم الجدولة</option>
+            <option value="معلق" ${(c.scheduling_status||'لم تتم الجدولة')==='معلق'?'selected':''}>معلق</option>
+          </select>
+        ` : `<span class="b ${(c.scheduling_status||'لم تتم الجدولة')==='تم الجدولة'?'b-green':(c.scheduling_status||'لم تتم الجدولة')==='معلق'?'b-amber':'b-red'}">${c.scheduling_status||'لم تتم الجدولة'}</span>`}
+      </span></div>
+      <div class="ir"><span class="il">حالة العميل</span><span class="iv">
+        ${isAdmin ? `
+          <select class="fsel" onchange="updateCustomerStatus(${c.id}, this.value)" style="padding:2px 6px;font-size:11px">
+            <option value="ساري" ${(c.customer_status||'ساري')==='ساري'?'selected':''}>ساري</option>
+            <option value="مؤرشف" ${(c.customer_status||'ساري')==='مؤرشف'?'selected':''}>مؤرشف</option>
+            <option value="يحتاج تواصل" ${(c.customer_status||'ساري')==='يحتاج تواصل'?'selected':''}>يحتاج تواصل</option>
+          </select>
+        ` : `<span class="b ${(c.customer_status||'ساري')==='ساري'?'b-blue':(c.customer_status||'ساري')==='مؤرشف'?'b-gray':'b-red'}">${c.customer_status||'ساري'}</span>`}
+      </span></div>
     </div>
     <div class="panel-sec"><div class="sec-lbl">العقد</div>
       ${isAdmin ? `
@@ -1157,7 +1248,38 @@ function openPanel(id){
       <div class="ir"><span class="il">نهاية العقد</span><span class="iv">${c.end_date||'—'}</span></div>
       ` : `<div style="text-align:center;padding:12px 0;color:var(--text3);font-size:12px;background:var(--bg3);border-radius:4px;margin-top:4px"><i class="ph ph-lock" style="font-size:16px;margin-bottom:4px;display:block"></i>هذه البيانات متاحة للإدارة فقط</div>`}
     </div>
-    ${(isAdmin && dots)?`<div class="panel-sec"><div class="sec-lbl">تقدم الزيارات <span style="font-size:10px;color:var(--text3);font-weight:400;margin-right:6px">(اضغط على أي شهر للتفاصيل)</span></div><div class="month-grid">${dots}</div></div>`:''}
+    ${(isAdmin && dots)?`
+      <div class="panel-sec">
+        <div class="sec-lbl" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span>تقدم الزيارات <span style="font-size:10px;color:var(--text3);font-weight:400;margin-right:6px">(اضغط للتفاصيل)</span></span>
+          <button onclick="toggleRangeSection(${c.id})" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;font-family:inherit;text-decoration:underline">+ تحديد فترة</button>
+        </div>
+        <div class="month-grid" style="margin-bottom:10px">${dots}</div>
+        
+        <!-- Collapsible Range Section -->
+        <div id="range-section-${c.id}" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:6px">
+          <div style="font-size:11px;font-weight:600;margin-bottom:8px">تحديد نطاق الزيارات دفعة واحدة (تمت الزيارة):</div>
+          <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px">
+            <div style="flex:1">
+              <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px">من شهر</label>
+              <select class="fsel" id="range-from" style="width:100%;font-size:11px;padding:3px 6px">
+                ${AR_MONTHS.map((m, idx) => `<option value="${idx}">${m}</option>`).join('')}
+              </select>
+            </div>
+            <div style="flex:1">
+              <label style="font-size:9px;color:var(--text3);display:block;margin-bottom:3px">إلى شهر</label>
+              <select class="fsel" id="range-to" style="width:100%;font-size:11px;padding:3px 6px">
+                ${AR_MONTHS.map((m, idx) => `<option value="${idx}">${m}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;justify-content:flex-end">
+            <button class="admin-btn btn-cancel" onclick="toggleRangeSection(${c.id})" style="padding:4px 8px;font-size:11px">إلغاء</button>
+            <button class="admin-btn btn-save" onclick="applyRangeVisits(${c.id})" style="padding:4px 8px;font-size:11px">حفظ الفترة</button>
+          </div>
+        </div>
+      </div>
+    `:''}
     <div class="panel-sec"><div class="sec-lbl">الزيارة المستحقة${currentDueMonth ? ' <span style="font-size:10px;color:var(--text3);font-weight:400">('+currentDueMonth+')</span>' : ''}</div>
       <div class="ir"><span class="il">يوم الزيارة</span><span class="iv" style="color:var(--accent);font-weight:600">${isAdmin ? (c.visit_day?visitLabel+' — يوم '+c.visit_day:'—') : (c.visit_day?'يوم '+c.visit_day:'—')}</span></div>
       <div class="ir"><span class="il">الزيارة القادمة</span><span class="iv" style="color:var(--accent)">${nextDate?formatDateAr(nextDate):'—'}</span></div>
@@ -1186,6 +1308,202 @@ function openPanel(id){
 function closePanel(){
   document.getElementById('panel').classList.remove('open');
   document.getElementById('ovl').classList.remove('show');
+}
+
+async function updateSchedulingStatus(id, val) {
+  if(!isAdmin) return;
+  id = parseInt(id, 10);
+  const c = raw.find(x => parseInt(x.id,10) === id);
+  if (!c) return;
+  
+  const oldSched = c.scheduling_status;
+  const oldCust = c.customer_status;
+  const oldNeeds = c.needs_contact;
+  
+  c.scheduling_status = val;
+  if (val === 'تم الجدولة') {
+    c.customer_status = 'ساري';
+    c.needs_contact = false;
+  }
+  
+  updateStats();
+  renderClients(applyClientFilters(), pg);
+  if (document.getElementById('panel').classList.contains('open')) {
+    const pid = parseInt(document.getElementById('panel-name').dataset.id || 0);
+    if (pid === id) openPanel(id);
+  }
+  
+  try {
+    const patchData = { scheduling_status: val };
+    if (val === 'تم الجدولة') {
+      patchData.customer_status = 'ساري';
+      patchData.needs_contact = false;
+    }
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(patchData)
+    });
+    if (!res.ok) throw new Error('DB Error');
+    showToast('✔ تم تحديث حالة الجدولة', 'success');
+  } catch (err) {
+    c.scheduling_status = oldSched;
+    c.customer_status = oldCust;
+    c.needs_contact = oldNeeds;
+    updateStats();
+    renderClients(applyClientFilters(), pg);
+    if (document.getElementById('panel').classList.contains('open')) {
+      const pid = parseInt(document.getElementById('panel-name').dataset.id || 0);
+      if (pid === id) openPanel(id);
+    }
+    showToast('تعذّر تحديث حالة الجدولة في قاعدة البيانات', 'error');
+  }
+}
+
+async function updateCustomerStatus(id, val) {
+  if(!isAdmin) return;
+  id = parseInt(id, 10);
+  const c = raw.find(x => parseInt(x.id,10) === id);
+  if (!c) return;
+  
+  const oldCust = c.customer_status;
+  const oldNeeds = c.needs_contact;
+  
+  c.customer_status = val;
+  if (val === 'يحتاج تواصل') {
+    c.needs_contact = true;
+  } else {
+    c.needs_contact = false;
+  }
+  
+  updateStats();
+  renderClients(applyClientFilters(), pg);
+  if (document.getElementById('panel').classList.contains('open')) {
+    const pid = parseInt(document.getElementById('panel-name').dataset.id || 0);
+    if (pid === id) openPanel(id);
+  }
+  
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ customer_status: val, needs_contact: c.needs_contact })
+    });
+    if (!res.ok) throw new Error('DB Error');
+    showToast('✔ تم تحديث حالة العميل', 'success');
+  } catch (err) {
+    c.customer_status = oldCust;
+    c.needs_contact = oldNeeds;
+    updateStats();
+    renderClients(applyClientFilters(), pg);
+    if (document.getElementById('panel').classList.contains('open')) {
+      const pid = parseInt(document.getElementById('panel-name').dataset.id || 0);
+      if (pid === id) openPanel(id);
+    }
+    showToast('تعذّر تحديث حالة العميل في قاعدة البيانات', 'error');
+  }
+}
+
+function toggleRangeSection(id) {
+  const el = document.getElementById(`range-section-${id}`);
+  if (el) {
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+async function applyRangeVisits(clientId) {
+  if(!isAdmin) return;
+  clientId = parseInt(clientId, 10);
+  const c = raw.find(x => parseInt(x.id,10) === clientId);
+  if (!c) return;
+
+  const fromM = parseInt(document.getElementById('range-from').value, 10);
+  const toM = parseInt(document.getElementById('range-to').value, 10);
+
+  const historyObj = getVisitHistory(c);
+  const oldHistory = JSON.parse(JSON.stringify(historyObj));
+  const oldDoneDate = c.visit_done_date;
+
+  const now = new Date();
+  let startMonth;
+  if(c.start_date){
+    const sd=new Date(c.start_date+'T00:00:00');
+    startMonth=new Date(sd.getFullYear(),sd.getMonth(),1);
+  } else {
+    startMonth=new Date(now.getFullYear(),now.getMonth()-11,1);
+  }
+  let endMonth;
+  if(c.end_date){
+    const ed=new Date(c.end_date+'T00:00:00');
+    endMonth=new Date(ed.getFullYear(),ed.getMonth(),1);
+  } else {
+    endMonth=new Date(startMonth.getFullYear(),startMonth.getMonth()+12,1);
+  }
+
+  let cur = new Date(startMonth);
+  let count = 0;
+  while(cur <= endMonth) {
+    if (count++ > 200) break; // safety
+    const mIdx = cur.getMonth();
+    let inRange = false;
+    if (fromM <= toM) {
+      inRange = (mIdx >= fromM && mIdx <= toM);
+    } else {
+      inRange = (mIdx >= fromM || mIdx <= toM);
+    }
+
+    if (inRange) {
+      const key = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,'0')}`;
+      if (!historyObj[key]) {
+        historyObj[key] = { done: true, note: '' };
+      } else {
+        historyObj[key].done = true;
+      }
+    }
+    cur = new Date(cur.getFullYear(), cur.getMonth()+1, 1);
+  }
+
+  c.visit_history = historyObj;
+  
+  const currentDueMonth = c.next_date ? c.next_date.substring(0,7) : '';
+  if (currentDueMonth && historyObj[currentDueMonth] && historyObj[currentDueMonth].done) {
+    c.visit_done_date = currentDueMonth;
+  }
+
+  toggleRangeSection(clientId);
+  openPanel(clientId);
+  renderVisits(currentVisitFilter);
+
+  try {
+    const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`, {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': `Bearer ${SB_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ visit_history: historyObj, visit_done_date: c.visit_done_date })
+    });
+    if (!res.ok) throw new Error('DB Error');
+    showToast('✔ تم تعيين زيارات الفترة المحددة بنجاح', 'success');
+  } catch(err) {
+    c.visit_history = oldHistory;
+    c.visit_done_date = oldDoneDate;
+    openPanel(clientId);
+    renderVisits(currentVisitFilter);
+    showToast('تعذّر حفظ زيارات الفترة', 'error');
+  }
 }
 
 // ─── Pages ───
@@ -1331,7 +1649,7 @@ async function saveVisitNote(id, note){
 }
 
 // ─── Month Detail Modal Logic ───
-let activeMonthDetail = { clientId: null, monthKey: null, done: false };
+let activeMonthDetail = { clientId: null, monthKey: null, done: null };
 
 function openMonthDetail(clientId, monthKey) {
   clientId = parseInt(clientId, 10);
@@ -1341,11 +1659,11 @@ function openMonthDetail(clientId, monthKey) {
   activeMonthDetail.monthKey = monthKey;
   
   const historyObj = getVisitHistory(c);
-  const monthData = historyObj[monthKey] || { done: false, note: '' };
-  activeMonthDetail.done = monthData.done;
+  const monthData = historyObj[monthKey];
+  activeMonthDetail.done = monthData ? monthData.done : null;
   
   document.getElementById('md-title').textContent = `${c.name} - ${monthKey}`;
-  document.getElementById('md-note').value = monthData.note || '';
+  document.getElementById('md-note').value = (monthData && monthData.note) ? monthData.note : '';
   
   updateMonthDetailButtons();
   
@@ -1355,12 +1673,33 @@ function openMonthDetail(clientId, monthKey) {
 function updateMonthDetailButtons() {
   const doneBtn = document.getElementById('md-btn-done');
   const notDoneBtn = document.getElementById('md-btn-notdone');
-  if (activeMonthDetail.done) {
+  const clearBtn = document.getElementById('md-btn-clear');
+  
+  doneBtn.classList.remove('active');
+  doneBtn.style.background = '';
+  doneBtn.style.color = '';
+  notDoneBtn.classList.remove('active');
+  notDoneBtn.style.background = '';
+  notDoneBtn.style.color = '';
+  clearBtn.classList.remove('active');
+  clearBtn.style.background = 'var(--bg3)';
+  clearBtn.style.color = 'var(--text2)';
+  clearBtn.style.borderColor = 'var(--border)';
+  
+  if (activeMonthDetail.done === true) {
     doneBtn.classList.add('active');
-    notDoneBtn.classList.remove('active');
-  } else {
-    doneBtn.classList.remove('active');
+    doneBtn.style.background = 'var(--green)';
+    doneBtn.style.color = '#fff';
+  } else if (activeMonthDetail.done === false) {
     notDoneBtn.classList.add('active');
+    notDoneBtn.style.background = 'var(--red)';
+    notDoneBtn.style.color = '#fff';
+  } else {
+    // null or undefined
+    clearBtn.classList.add('active');
+    clearBtn.style.background = 'var(--bg4)';
+    clearBtn.style.color = 'var(--text)';
+    clearBtn.style.borderColor = 'var(--accent)';
   }
 }
 
@@ -1387,13 +1726,21 @@ async function saveMonthDetail() {
   const oldVisitNote = c.visit_note;
   
   // Update local state
-  historyObj[monthKey] = { done: done, note: note };
+  if (done === null) {
+    if (!note) {
+      delete historyObj[monthKey];
+    } else {
+      historyObj[monthKey] = { done: null, note: note };
+    }
+  } else {
+    historyObj[monthKey] = { done: done, note: note };
+  }
   c.visit_history = historyObj;
   
   // If editing the current due month, sync with current fields
   const currentDueMonth = c.next_date ? c.next_date.substring(0,7) : '';
   if (monthKey === currentDueMonth) {
-    c.visit_done_date = done ? monthKey : null;
+    c.visit_done_date = (done === true) ? monthKey : null;
     c.visit_note = note;
   }
   
@@ -1408,7 +1755,7 @@ async function saveMonthDetail() {
   try {
     const patchData = { visit_history: historyObj };
     if (monthKey === currentDueMonth) {
-      patchData.visit_done_date = done ? monthKey : null;
+      patchData.visit_done_date = (done === true) ? monthKey : null;
       patchData.visit_note = note;
     }
     
@@ -2044,6 +2391,8 @@ function showAddModal(){
   document.getElementById('f-day').value='';
   document.getElementById('f-start').value='';
   document.getElementById('f-end').value='';
+  document.getElementById('f-scheduling').value='لم تتم الجدولة';
+  document.getElementById('f-customer-status').value='ساري';
   document.getElementById('f-contact').checked=false;
   document.getElementById('next-date-preview').textContent='';
   document.getElementById('client-modal').classList.add('show');
@@ -2066,6 +2415,8 @@ function showEditModal(id){
   document.getElementById('f-start').value=c.start_date||'';
   document.getElementById('f-end').value=c.end_date||'';
   document.getElementById('f-note').value=c.note||'';
+  document.getElementById('f-scheduling').value=c.scheduling_status||'لم تتم الجدولة';
+  document.getElementById('f-customer-status').value=c.customer_status||'ساري';
   document.getElementById('f-contact').checked=!!c.needs_contact;
   updateNextDatePreview();
   document.getElementById('client-modal').classList.add('show');
@@ -2075,6 +2426,27 @@ async function saveClient(){
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const visitDay=parseInt(document.getElementById('f-day').value)||0;
   const visitType=document.getElementById('f-visit').value;
+  
+  const scheduling_status = document.getElementById('f-scheduling').value;
+  let customer_status = document.getElementById('f-customer-status').value;
+  const note = document.getElementById('f-note').value.trim();
+  let needs_contact = document.getElementById('f-contact').checked;
+  
+  let final_scheduling_status = scheduling_status;
+  if (note === 'تم الجدولة') {
+    final_scheduling_status = 'تم الجدولة';
+  }
+  
+  if (final_scheduling_status === 'تم الجدولة') {
+    customer_status = 'ساري';
+  }
+  
+  if (customer_status === 'يحتاج تواصل') {
+    needs_contact = true;
+  } else if (needs_contact) {
+    customer_status = 'يحتاج تواصل';
+  }
+  
   const data={
     name,
     phone:document.getElementById('f-phone').value.trim(),
@@ -2088,8 +2460,10 @@ async function saveClient(){
     visit_day:visitDay,
     start_date:document.getElementById('f-start').value||null,
     end_date:document.getElementById('f-end').value||null,
-    note:document.getElementById('f-note').value.trim(),
-    needs_contact:document.getElementById('f-contact').checked,
+    note,
+    needs_contact,
+    scheduling_status: final_scheduling_status,
+    customer_status,
     updated_at:new Date().toISOString()
   };
   try{
@@ -2179,6 +2553,23 @@ function showToast(msg,type=''){
 document.getElementById('client-modal').addEventListener('click',function(e){if(e.target===this)closeModal('client-modal');});
 document.getElementById('inst-modal').addEventListener('click',function(e){if(e.target===this)closeModal('inst-modal');});
 document.getElementById('cust-modal').addEventListener('click',function(e){if(e.target===this)closeModal('cust-modal');});
+
+document.getElementById('f-customer-status').addEventListener('change', function() {
+  if (this.value === 'يحتاج تواصل') {
+    document.getElementById('f-contact').checked = true;
+  } else {
+    document.getElementById('f-contact').checked = false;
+  }
+});
+document.getElementById('f-contact').addEventListener('change', function() {
+  if (this.checked) {
+    document.getElementById('f-customer-status').value = 'يحتاج تواصل';
+  } else {
+    if (document.getElementById('f-customer-status').value === 'يحتاج تواصل') {
+      document.getElementById('f-customer-status').value = 'ساري';
+    }
+  }
+});
 </script>
 </body>
 </html>
