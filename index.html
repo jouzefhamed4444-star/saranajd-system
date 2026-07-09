@@ -445,7 +445,7 @@ body.light-mode .admin-bar {
             </div>
           </div>
           <div class="tw"><table class="tbl">
-            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>نوع العقد</th><th>المدة</th><th>قيمة العقد</th><th>البداية</th><th>النهاية</th><th>الحالة</th></tr></thead>
+            <thead><tr><th>#</th><th>العميل</th><th>المنطقة</th><th>نوع العقد</th><th>حالة الجدولة</th><th>حالة العميل</th><th>المدة</th><th>قيمة العقد</th><th>البداية</th><th>النهاية</th><th>الحالة</th></tr></thead>
             <tbody id="contracts-tbody"></tbody>
           </table></div>
         </div>
@@ -1017,6 +1017,9 @@ async function loadData(){
         cust = 'ساري';
       }
       let needs_contact = c.needs_contact;
+      if (needs_contact) {
+        cust = 'يحتاج تواصل';
+      }
       if (cust === 'يحتاج تواصل') {
         needs_contact = true;
       }
@@ -1091,7 +1094,7 @@ function applyClientFilters(){
   if(schedF) r=r.filter(c=>(c.scheduling_status||'لم تتم الجدولة')===schedF);
   if(statusF) r=r.filter(c=>(c.customer_status||'ساري')===statusF);
   if(clientSearchQ) r=r.filter(c=>c.name.includes(clientSearchQ)||(c.phone&&c.phone.includes(clientSearchQ))||(c.area&&c.area.includes(clientSearchQ)));
-  return r;
+  return r.sort((a, b) => a.id - b.id);
 }
 function searchClients(q){clientSearchQ=q;renderClients(applyClientFilters(),1);}
 function filterContract(v){contractF=v;renderClients(applyClientFilters(),1);}
@@ -1533,7 +1536,7 @@ function applyContractFilters(){
   if(contractsTypeF==='تركيب/مجاني') r=r.filter(c=>isInstall(c));
   else if(contractsTypeF) r=r.filter(c=>c.contract===contractsTypeF);
   if(contractsSearchQ) r=r.filter(c=>c.name.includes(contractsSearchQ)||(c.area&&c.area.includes(contractsSearchQ)));
-  return r;
+  return r.sort((a, b) => a.id - b.id);
 }
 function searchContracts(q){contractsSearchQ=q;renderContracts();}
 function filterContractsType(v){contractsTypeF=v;renderContracts();}
@@ -1550,6 +1553,20 @@ function renderContracts(){
     <tr class="${c.needs_contact?'row-red':''}" onclick="openPanel(${c.id})">
       <td style="color:var(--text3)">${c.id}</td><td style="font-weight:500">${c.name}</td>
       <td style="color:var(--text2)">${c.area||'—'}</td><td>${isAdmin ? cb(c.contract) : hiddenTxt}</td>
+      <td>
+        ${(() => {
+          const sched = c.scheduling_status || 'لم تتم الجدولة';
+          const cls = sched === 'تم الجدولة' ? 'b-green' : sched === 'معلق' ? 'b-amber' : 'b-red';
+          return `<span class="b ${cls}">${sched}</span>`;
+        })()}
+      </td>
+      <td>
+        ${(() => {
+          const cust = c.customer_status || 'ساري';
+          const cls = cust === 'ساري' ? 'b-blue' : cust === 'مؤرشف' ? 'b-gray' : 'b-red';
+          return `<span class="b ${cls}">${cust}</span>`;
+        })()}
+      </td>
       <td style="color:var(--text2)">${isAdmin ? c.duration||'—' : hiddenTxt}</td>
       <td style="color:var(--green);font-weight:500">${isAdmin ? fmtMoney(c.contract_value) : hiddenTxt}</td>
       <td style="color:var(--text2)">${isAdmin ? c.start_date||'—' : hiddenTxt}</td><td style="color:var(--text2)">${isAdmin ? c.end_date||'—' : hiddenTxt}</td>
