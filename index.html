@@ -1787,11 +1787,28 @@ async function doLogout(){
   document.getElementById('lerr').textContent='';
 }
 
+/* ─── Auth headers ───
+   المستخدم المسجل (أدمن): يستخدم توكن الجلسة الفعلية (authenticated) حتى
+   تُقبل عمليات الإدراج/التعديل من سياسات RLS. الزائر/الضيوف: مفتاح anon
+   (قراءة الأعمدة الآمنة فقط). */
+async function sbAuthHeader(extra){
+  let tk=null;
+  try{
+    const {data}=await supabaseAuth.auth.getSession();
+    tk=(data&&data.session&&data.session.access_token)||null;
+  }catch(e){tk=null;}
+  return {
+    'apikey':SB_KEY,
+    'Authorization':`Bearer ${tk||SB_KEY}`,
+    'Content-Type':'application/json',
+    'Prefer':'return=representation',
+    ...(extra||{})
+  };
+}
+
 async function sbFetch(path,opts={}){
-  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{
-    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=representation',...(opts.headers||{})},
-    ...opts
-  });
+  const headers=await sbAuthHeader(opts.headers);
+  const r=await fetch(`${SB_URL}/rest/v1/${path}`,{headers,...opts});
   if(!r.ok) throw new Error(await r.text());
   const t=await r.text(); return t?JSON.parse(t):[];
 }
@@ -1857,11 +1874,27 @@ function hideLoader(){
   if(b) b.classList.remove('spin');
 }
 
+/* ─── Security: جلب العملاء حسب الدور ───
+   الأدمن: كل الأعمدة من clients.
+   الزائر: الأعمدة الآمنة فقط (ما يعرض "للإدارة فقط" يُستبعد من طلب الشبكة نفسه):
+   phone, contract_value, duration, start_date, end_date لا تصل للمتصفح إطلاقاً.
+   يُفضل استعلام الـ View الآمنة clients_public عند توفرها، وإلا السقوط
+   الاحتياطي على تحديد الأعمدة مباشرة من جدول clients. */
+const SAFE_CLIENT_COLS='id,name,area,elevators,contract,contract_custom,visit_day,visit,next_date,remaining,scheduling_status,customer_status,needs_contact,visit_done_date,visit_note,visit_history,note,created_at';
+async function fetchClientRows(){
+  if(isAdmin) return await sbFetch('clients?select=*&order=id.asc');
+  try{
+    return await sbFetch('clients_public?select=*&order=id.asc');
+  }catch(e){
+    return await sbFetch(`clients?select=${SAFE_CLIENT_COLS}&order=id.asc`);
+  }
+}
+
 async function loadData(){
   try{
     showLoader();
     document.getElementById('pg-sub').textContent='جاري التحميل...';
-    raw=await sbFetch('clients?select=*&order=id.asc');
+    raw=await fetchClientRows();
     raw=raw.map(c=>{
       let sched = c.scheduling_status || 'لم تتم الجدولة';
       let cust = c.customer_status || 'ساري';
@@ -2205,10 +2238,7 @@ async function updateSchedulingStatus(id, val) {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        ...(await sbAuthHeader({'Prefer':'return=minimal'}))
       },
       body: JSON.stringify(patchData)
     });
@@ -2255,10 +2285,7 @@ async function updateCustomerStatus(id, val) {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        ...(await sbAuthHeader({'Prefer':'return=minimal'}))
       },
       body: JSON.stringify({ customer_status: val, needs_contact: c.needs_contact })
     });
@@ -2351,10 +2378,7 @@ async function applyRangeVisits(clientId) {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        ...(await sbAuthHeader({'Prefer':'return=minimal'}))
       },
       body: JSON.stringify({ visit_history: historyObj, visit_done_date: c.visit_done_date })
     });
@@ -2467,7 +2491,7 @@ async function toggleVisit(id, e){
   try {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      headers:await sbAuthHeader({'Prefer':'return=minimal'}),
       body:JSON.stringify({visit_done_date: c.visit_done_date, visit_history: historyObj})
     });
     if(!res.ok) throw new Error('DB Error');
@@ -2509,7 +2533,7 @@ async function saveVisitNote(id, note){
   try {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      headers:await sbAuthHeader({'Prefer':'return=minimal'}),
       body:JSON.stringify({visit_note:note, visit_history:historyObj})
     });
     if(!res.ok) throw new Error('DB Error');
@@ -2639,10 +2663,7 @@ async function saveMonthDetail() {
     const res = await fetch(`${SB_URL}/rest/v1/clients?id=eq.${clientId}`, {
       method: 'PATCH',
       headers: {
-        'apikey': SB_KEY,
-        'Authorization': `Bearer ${SB_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        ...(await sbAuthHeader({'Prefer':'return=minimal'}))
       },
       body: JSON.stringify(patchData)
     });
@@ -2675,7 +2696,7 @@ async function saveLocation(id){
   try{
     const res=await fetch(`${SB_URL}/rest/v1/clients?id=eq.${id}`,{
       method:'PATCH',
-      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      headers:await sbAuthHeader({'Prefer':'return=minimal'}),
       body:JSON.stringify({location_url:url||null})
     });
     if(!res.ok) throw new Error('DB Error');
@@ -3111,6 +3132,7 @@ function openCustomPanel(id){
   document.getElementById('cust-modal').classList.add('show');
 }
 async function saveCustomContract(){
+  if(!isAdmin){showToast('للإدارة فقط','error');return;}
   const name=document.getElementById('c-name').value.trim();
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const data={
@@ -3141,6 +3163,7 @@ async function saveCustomContract(){
 
 // ─── Reports (enhanced) ───
 function renderReports(){
+  if(!isAdmin) return;
   const totalClients=raw.length;
   const totalElevators=raw.reduce((s,c)=>s+(c.elevators||0),0);
   const totalContractVal=raw.reduce((s,c)=>s+(Number(c.contract_value)||0),0);
@@ -3413,6 +3436,7 @@ function showEditModal(id){
   document.getElementById('client-modal').classList.add('show');
 }
 async function saveClient(){
+  if(!isAdmin){showToast('للإدارة فقط','error');return;}
   const name=document.getElementById('f-name').value.trim();
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const visitDay=parseInt(document.getElementById('f-day').value)||0;
@@ -3471,6 +3495,7 @@ async function saveClient(){
   }catch(e){showToast('خطأ في الحفظ: '+e.message.slice(0,80),'error');}
 }
 async function deleteClient(id){
+  if(!isAdmin){showToast('للإدارة فقط','error');return;}
   const c=raw.find(x=>x.id===id);
   if(!confirm(`هل تريد حذف "${c.name}"؟`)) return;
   try{
@@ -3499,6 +3524,7 @@ function showInstallModal(){
   document.getElementById('inst-modal').classList.add('show');
 }
 async function saveInstallation(){
+  if(!isAdmin){showToast('للإدارة فقط','error');return;}
   const name=document.getElementById('i-name').value.trim();
   if(!name){showToast('اسم العميل مطلوب','error');return;}
   const data={
