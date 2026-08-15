@@ -976,7 +976,6 @@ body.light-mode .urgent-banner,body.light-mode .expiry-banner{box-shadow:0 4px 1
         </div>
         <div id="lerr" class="login-error"></div>
         <button type="button" class="login-btn login-btn-primary" onclick="doLogin()"><i class="ph-bold ph-sign-in"></i> دخول إلى النظام</button>
-        <button type="button" class="login-btn login-btn-ghost" onclick="viewOnly()"><i class="ph-duotone ph-eye"></i> دخول كزائر — عرض فقط</button>
       </form>
       <div class="login-foot"><i class="ph ph-elevator" style="font-size:12px"></i> سرا نجد للمصاعد — تنفيذ وتركيب وصيانة</div>
     </div>
@@ -1750,8 +1749,6 @@ async function tryAutoLogin() {
   } catch (e) { /* no active session, stay on login screen */ }
 }
 
-function viewOnly() { me={name:"زائر",role:"عرض فقط",isAdmin:false}; isAdmin=false; startApp(); }
-
 function startApp() {
   document.getElementById('login-wrap').style.display = 'none';
   document.getElementById('app-wrap').style.display = 'flex';
@@ -1788,9 +1785,9 @@ async function doLogout(){
 }
 
 /* ─── Auth headers ───
-   المستخدم المسجل (أدمن): يستخدم توكن الجلسة الفعلية (authenticated) حتى
-   تُقبل عمليات الإدراج/التعديل من سياسات RLS. الزائر/الضيوف: مفتاح anon
-   (قراءة الأعمدة الآمنة فقط). */
+   جميع الطلبات تحمل توكن الجلسة الفعلية (authenticated) حتى تُقبل عمليات
+   الإدراج/التعديل من سياسات RLS. المفتاح العام (anon) يُستخدم احتياطياً
+   فقط عندما لا تتوفر جلسة نشطة (لن يصل إليها المستخدم عادة). */
 async function sbAuthHeader(extra){
   let tk=null;
   try{
@@ -1876,10 +1873,10 @@ function hideLoader(){
 
 /* ─── Security: جلب العملاء حسب الدور ───
    الأدمن: كل الأعمدة من clients.
-   الزائر: الأعمدة الآمنة فقط (ما يعرض "للإدارة فقط" يُستبعد من طلب الشبكة نفسه):
-   phone, contract_value, duration, start_date, end_date لا تصل للمتصفح إطلاقاً.
-   يُفضل استعلام الـ View الآمنة clients_public عند توفرها، وإلا السقوط
-   الاحتياطي على تحديد الأعمدة مباشرة من جدول clients. */
+   المستخدم غير الأدمن: الأعمدة الآمنة فقط (ما يعرض "للإدارة فقط" يُستبعد
+   من طلب الشبكة نفسه): phone, contract_value, duration, start_date, end_date
+   لا تصل للمتصفح إطلاقاً. يُفضل استعلام الـ View الآمنة clients_public عند
+   توفرها، وإلا السقوط الاحتياطي على تحديد الأعمدة مباشرة من جدول clients. */
 const SAFE_CLIENT_COLS='id,name,area,elevators,contract,contract_custom,visit_day,visit,next_date,remaining,scheduling_status,customer_status,needs_contact,visit_done_date,visit_note,visit_history,note,created_at';
 async function fetchClientRows(){
   if(isAdmin) return await sbFetch('clients?select=*&order=id.asc');
